@@ -42,6 +42,10 @@ def root_cell_endpoint_analysis(source_files):
 
 
 def rls_analysis(source_files):
+    """
+    Writes .csv with following info for all traps in a given source file:
+    trap_num, branch_count, root_node_endpoints (the time_num the root_node was first last seen/algo cuts off)
+    """
 
     print("Running RLS Meta-Analysis")
 

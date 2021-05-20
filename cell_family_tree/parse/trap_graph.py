@@ -1,5 +1,7 @@
 import pandas as pd
 import sys
+import os
+from .helpers import write_csv
 
 """
 Doc Doc Doc
@@ -8,9 +10,11 @@ Doc Doc Doc
 
 class TrapGraph:
 
-    def __init__(self, df, run_graph=True):
+    def __init__(self, df, run_graph=True, file_name=None):
         self.df = df
         self.run_graph = run_graph
+        self.file_name = file_name
+        self.trap_num = None
         self.graph = {}
         self.root_nodes = []
         self.root_pred_ids = []
@@ -61,6 +65,7 @@ class TrapGraph:
             self.root_nodes.append(node_name)
             self.root_pred_ids.append(pred_id)
             self.graph_helper["pred_id_last_node"][pred_id] = node_name
+            self.trap_num = node["trap_num"]
 
     def _set_root_endpoints(self):
         """
@@ -206,5 +211,38 @@ class TrapGraph:
                     sys.exit()
 
                 self.graph_helper["pred_id_last_node"][pred_id] = node_name
+
+    def write_cytoscape_network_csv(self):
+
+        if not self.file_name:
+            raise ValueError("Must Supply FileName to Generate CytoScape Network CSV")
+
+        if len(self.root_nodes) != 1:
+            raise ValueError("Currently Only 1 Root Node Supported")
+
+        if not os.path.exists("cytoscape"):
+            os.mkdir("cytoscape")
+
+        # print(self.graph)
+
+        res = [["source", "target", "interaction", "directed", "symbol", "value"]]
+        has_parsed = []
+        for source_node in self.graph:
+            for target_node in self.graph[source_node]:
+                if target_node in has_parsed:
+                    continue
+                symbol = source_node
+                value = 1.0
+                directed = True
+                interaction = "pp"
+                if source_node in self.root_nodes:
+                    directed = False
+
+                res.append([source_node, target_node, interaction, directed, symbol, value])
+                has_parsed.append(source_node)
+
+        write_csv("cytoscape/{}_TrapNum_{}_cytoscape_network.csv".format(self.file_name.replace(".csv", ""), self.trap_num), res)
+
+
 
 

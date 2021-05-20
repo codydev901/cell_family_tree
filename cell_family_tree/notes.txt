@@ -1,0 +1,2 @@
+FT_BC8_yolo_short.csv, trap 1, time 152 area, pred id 2-4, Cody 5/19
+FT_BC8_yolo_short.csv, trap 62, time 280+ area, obj count off, Cody 5/19
