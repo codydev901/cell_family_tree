@@ -1,6 +1,6 @@
 import pandas as pd
 import math
-import sys
+import os
 from .helpers import write_csv
 pd.options.mode.chained_assignment = None   # For predID assignment on query
 
@@ -15,6 +15,7 @@ class TrapData:
     def __init__(self, file_name):
         self.file_name = file_name
         self.df = pd.read_csv("data/{}".format(self.file_name))
+        self.traps = list(self.df["trap_num"].unique())
         self.data_info = []
 
     def set_data_info(self, do_write=False):
@@ -24,10 +25,9 @@ class TrapData:
 
         print("TrapData:{} Setting Data Info...".format(self.file_name))
 
-        trap_list = list(self.df["trap_num"].unique())
         data_info = [["trap_num", "time_max", "root_cell_count", "total_cell_count", "unique_pred_ids"]]
         all_pred_ids = []
-        for trap_num in trap_list:
+        for trap_num in self.traps:
             trap_df = self.get_single_trap_df(trap_num)
             time_min, time_max = trap_df["time_num"].min(), trap_df["time_num"].max()
             root_cell_count = trap_df.query("time_num == {}".format(time_min))["total_objs"].unique()[0]
@@ -48,7 +48,7 @@ class TrapData:
 
         if do_write:
 
-            write_csv("recent/{}_TrapDataMetaAnalysis.csv".format(self.file_name.replace(".csv", "")), self.data_info)
+            write_csv("reports/{}_TrapDataMetaAnalysis.csv".format(self.file_name.replace(".csv", "")), self.data_info)
 
     def get_single_trap_df(self, trap_num, t_stop=None):
         """
@@ -92,6 +92,9 @@ class TrapData:
             del df["image_num"]
         except KeyError:
             pass
+
+        if not os.path.exists("recent"):
+            os.mkdir("recent")
 
         df.to_csv("recent/recent_query.csv", index=False)
 
