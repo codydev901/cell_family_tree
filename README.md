@@ -44,11 +44,18 @@ trap_graph.root_pred_ids = []   # List of root pred ids
 trap_graph.branch_nodes = []    # List of nodes where branches occur (length represents number of divisions)
 trap_graph.time_num_obj = []    # time_num associated w/ obj_count
 trap_graph.root_endpoints = {}  # Last time_num where a root node was seen
+
+# For cytoscape format can call
+trap_graph.write_cytoscape_network_csv()
 ```
 
 ### Reports
-TODO
+run_reports.py holds various scripts that can be used to gather information of interest or compare the raw data sets. These are detailed within the .py file.
+
 
 ### Cytoscape
+graph_to_cytoscape.py can be used to convert a TrapGraph obj to a CytoScape network so that it may be imported into that software for visualization.
+
+### Methods/Assumptions of trap_graph
 TODO
 
