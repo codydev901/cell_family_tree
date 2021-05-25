@@ -63,6 +63,42 @@ def rls_analysis(source_files):
         write_csv("reports/{}_RLSAnalysis.csv".format(s.replace(".csv", "")), res)
 
 
+def rls_from_obj_analysis(source_files):
+    """
+    Writes .csv with following info for all traps in a given source file:
+    trap_num, branch_count, time_num_endpoint (the time_num the algo cuts off)
+    """
+
+    print("Running RLS ObjCount Meta-Analysis")
+
+    results = {}
+    traps = []
+    for s in source_files:
+        results[s] = {}
+        trap_data = TrapData(s)
+        for t in trap_data.traps:
+            results[s][t] = {}
+            trap_df = trap_data.get_single_trap_df(trap_num=t)
+            trap_graph = TrapGraph(trap_df, run_graph=False)
+            if len(trap_graph.root_nodes) != 1:
+                continue
+            if t not in traps:
+                traps.append(t)
+            results[s][t] = trap_graph.get_divisions_from_obj_count()
+
+    file_names = list(results.keys())
+    res = [["trap_num"] + file_names + ["{}_EndPoint".format(v) for v in file_names]]
+    for t in traps:
+        trap_res = [t]
+        end_points = []
+        for s in source_files:
+            trap_res.append(results[s][t]["num_branches"])
+            end_points.append(results[s][t]["break_time_num"])
+        res.append(trap_res + end_points)
+
+    write_csv("reports/all_source_obj_count_branch_count.csv", res)
+
+
 def main():
 
     if not os.path.exists("reports"):
@@ -76,7 +112,9 @@ def main():
 
     # root_cell_endpoint_analysis(source_files)
 
-    rls_analysis(source_files)
+    # rls_analysis(source_files)
+
+    rls_from_obj_analysis(source_files)
 
 
 if __name__ == "__main__":

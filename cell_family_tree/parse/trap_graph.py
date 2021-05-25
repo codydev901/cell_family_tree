@@ -243,6 +243,55 @@ class TrapGraph:
 
         write_csv("cytoscape/{}_TrapNum_{}_cytoscape_network.csv".format(self.file_name.replace(".csv", ""), self.trap_num), res)
 
+    def get_divisions_from_obj_count(self):
+        """
+        Separate from the graph. Attempts to determine branching(life-cycle) behavior through change in obj count.
+        """
+
+        print("Get Obj Count Info")
+
+        time_num_objs_lu = {}
+
+        for i, row in self.df.iterrows():
+
+            time_num = row["time_num"]
+            num_objs = row["total_objs"]
+
+            time_num_objs_lu[time_num] = num_objs
+
+        cell_divisions = []
+        break_time_num = None
+        for time_num in time_num_objs_lu:
+
+            if time_num == 1:
+                continue
+
+            if time_num == len(time_num_objs_lu):
+                continue
+
+            last_num_objs = time_num_objs_lu[time_num - 1]
+            curr_num_objs = time_num_objs_lu[time_num]
+            next_num_objs = time_num_objs_lu[time_num + 1]
+
+            # Stop Criteria
+            if curr_num_objs >= 5 and next_num_objs >= 5:
+                break_time_num = time_num
+                break
+
+            # Detect a Cell Division
+            if curr_num_objs > last_num_objs:       # Increase over last step means new division
+                if next_num_objs >= curr_num_objs:  # Check that it persists in next step (not an abnormality)
+                    cell_divisions.append([time_num, curr_num_objs - last_num_objs])
+
+            # print(last_num_objs, curr_num_objs, next_num_objs)
+
+        if not break_time_num:
+            break_time_num = max(list(time_num_objs_lu.keys()))
+
+        num_branches = sum([v[1] for v in cell_divisions])
+        res = {"cell_divisions": cell_divisions, "break_time_num": break_time_num, "num_branches": num_branches}
+
+        return res
 
 
 

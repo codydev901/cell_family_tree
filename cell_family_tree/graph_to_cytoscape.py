@@ -12,7 +12,7 @@ https://apps.cytoscape.org/apps/yfileslayoutalgorithms, Install & Restart
 def main():
 
     source_file = "FT_BC8_yolo_short.csv"
-    trap_num = 1
+    trap_num = 29
 
     trap_data = TrapData(source_file)
     trap_df = trap_data.get_single_trap_df(trap_num)
