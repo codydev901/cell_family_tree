@@ -22,6 +22,7 @@ class TrapGraph:
         self.branch_nodes = []
         self.root_branch_nodes = []
         self.time_num_obj = []
+        self.num_objs = []
         self.root_endpoints = {}
         self.graph_helper = {}
         self._on_init()
@@ -36,6 +37,7 @@ class TrapGraph:
 
         self._establish_root_nodes()
         self._set_root_endpoints()
+        self._establish_num_objs()
 
         if self.run_graph:
             self._make_graph()
@@ -46,6 +48,19 @@ class TrapGraph:
                 vals = sorted(vals)
                 vals = [str(round(v, 1)) for v in vals]
                 self.graph[k] = vals
+
+    def _establish_num_objs(self):
+        """
+        Makes an array holding the number of objects at each time_num. Done early for use in earlier-stopping
+        determination.
+        """
+
+        time_dict = dict()
+
+        for i, row in self.df.iterrows():
+            time_dict[row["time_num"]] = row["total_objs"]
+
+        self.num_objs = [time_dict[k] for k in time_dict]
 
     def _establish_root_nodes(self):
         """
@@ -174,24 +189,51 @@ class TrapGraph:
 
             # Tracks number of obj seen per time step. Used in debug/display purposes.
             self.time_num_obj.append([t, len_time_step])
-
             step_info = time_df.to_dict('records')
-
             active_pred_ids = [v["predecessorID"] for v in step_info]
 
-            # Early Termination Growth
+            # Early Termination Sudden Growth in Later Steps
             if (len(active_pred_ids) - len(last_time_step_pred_ids)) >= 2:
-                if t > 200:
-                    print("Large Object Growth Shift In TimeStep > 200 - Ending Parse")
+                if t > 180:
+                    print("Large Object Growth Shift In TimeStep > 180 - Ending Parse", t)
                     self.t_stop = t
                     return
 
-            # Early Termination Reduction
+            # Early Termination Sudden Reduction in Later Steps
             if (len(active_pred_ids) - len(next_time_step_pred_ids)) >= 2:
-                if t > 200:
-                    print("Large Object Reduction Shift In TimeStep > 200 - Ending Parse")
+                if t > 180:
+                    print("Large Object Reduction Shift In TimeStep > 180 - Ending Parse", t)
                     self.t_stop = t
                     return
+
+            # Early Termination - Dead Cell/No Divisions For Next X Steps
+            if len(set(self.num_objs[t:t+10])) == 1 and list(set(self.num_objs[t:t+10]))[0] == 1:
+                print("No Divisions In Near Future - Ending Parse ", t)
+                self.t_stop = t
+                return
+
+            # Early Termination - Sustained Future High Objs
+            future_objs = self.num_objs[t:t+10]
+            future_objs.sort()
+            if future_objs[0] >= 4:
+                print("High Sustained Obj Count in Future - Ending Parse ", t)
+                self.t_stop = t
+                return
+
+            # Early Termination - 0 Objs At TimeStep
+            if 0 in self.num_objs[t:t+10]:
+                print("0 Obj Detected - Ending Parse ", t)
+                self.t_stop = t
+                return
+
+            # Early Termination - Sudden Massive Increase - Not Sustained
+            try:
+                if (self.num_objs[t+1] - self.num_objs[t] >= 4) and self.num_objs[t+2] <= 2:
+                    print("Massive Increase - Ending Parse ", t)
+                    self.t_stop = t
+                    return
+            except IndexError:
+                pass
 
             # Check for existence of root/mother cell, if not present, attempt re-assignment logic
             for root_pred_id in self.root_pred_ids:

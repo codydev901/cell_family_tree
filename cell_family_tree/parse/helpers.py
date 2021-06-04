@@ -32,6 +32,9 @@ def parse_experimental_results(file_path):
         try:
             exp_res[int(r[0])] = int(r[1])
         except ValueError:
-            exp_res[int(r[0])] = "non_int:{}".format(r[1])
+            if "l" in r[1]:
+                exp_res[int(r[0])] = int(r[1].replace("l", ""))
+            else:
+                exp_res[int(r[0])] = "non_int:{}".format(r[1])
 
     return exp_res
