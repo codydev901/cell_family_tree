@@ -205,49 +205,38 @@ class TrapGraph:
                         print("Performing PredID Re-Assignment at time:{}".format(t))
                         has_modified_pred_ids = []
                         for i, s in enumerate(step_info):
-                            # CASE - Only Root Remains
+                            # CASE - Only Root Remains in next step
                             if len(set(next_time_step_pred_ids)) == len(self.root_pred_ids):
                                 if len(has_modified_pred_ids):
                                     continue
                                 has_modified_pred_ids.append(s["predecessorID"])
                                 s["predecessorID"] = root_pred_id
+                                # print("Case 1")
                                 continue
-                            # CASE - Single Root Shift
+                            # CASE - Single Root Shift - Same obj's in existing and root
                             if len(set(active_pred_ids)) == len(self.root_pred_ids):
                                 has_modified_pred_ids.append(s["predecessorID"])
                                 s["predecessorID"] = root_pred_id
+                                # print("Case 2")
                                 continue
                             # CASE - Non-root is fine
                             if s["predecessorID"] in last_time_step_pred_ids:
                                 if s["predecessorID"] in next_time_step_pred_ids:
+                                    # print("Case 3")
                                     continue
                             # CASE - Changing a new non-root to root (2 2 to 1 1 example)
                             if s["predecessorID"] not in last_time_step_pred_ids:
                                 has_modified_pred_ids.append(s["predecessorID"])
                                 s["predecessorID"] = root_pred_id
+                                # print("Case 4")
                                 continue
                             # CASE = Changing an existing non-root to root (3 4 to 1 2 example)
                             if s["predecessorID"] in last_time_step_pred_ids:
                                 if len(has_modified_pred_ids) < len(self.root_pred_ids):
                                     has_modified_pred_ids.append(s["predecessorID"])
                                     s["predecessorID"] = root_pred_id
+                                    # print("Case 5")
                                     continue
-                            # CASE - Changing a non-root to another non-root, 1 to 1
-                            if i+1 == len(next_time_step_pred_ids):
-                                new_pred_ids = set(set([v["predecessorID"] for v in step_info])).difference(set(next_time_step_pred_ids))
-                                new_pred_ids = list(new_pred_ids)
-                                try:
-                                    s["predecessorID"] = new_pred_ids[0]
-                                except IndexError:
-                                    print("Case 3 Error")
-                                    print(t)
-                                    print(new_pred_ids)
-                                    print(has_modified_pred_ids)
-                                    print([v["predecessorID"] for v in step_info])
-                                    print(step_info)
-                                    raise ValueError("Case 3 Error", len(self.root_branch_nodes))
-                                has_modified_pred_ids.append(new_pred_ids[0])
-                                continue
                             # CASE - Changing a non-root to another non-root, 1 to many
                             if s["predecessorID"] in last_time_step_pred_ids:
                                 if s["predecessorID"] not in next_time_step_pred_ids:
@@ -264,6 +253,9 @@ class TrapGraph:
                                         print(step_info)
                                         raise ValueError("Case 4 Error", len(self.root_branch_nodes))
                                     has_modified_pred_ids.append(new_pred_ids[0])
+                                    # print("Case 7")
+                                    continue
+                            # print("NO CHANGE")
 
                         print("Current Step Re:{}".format([v["predecessorID"] for v in step_info]))
 
