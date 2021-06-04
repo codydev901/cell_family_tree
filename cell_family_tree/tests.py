@@ -1,5 +1,6 @@
 from parse.trap_data import TrapData
 from parse.trap_graph import TrapGraph
+from parse.helpers import parse_experimental_results
 
 """
 Doc Doc Doc
@@ -20,6 +21,7 @@ def trap_data_tests():
 
 def trap_graph_tests():
 
+    # trap_data = TrapData("FT_BC8_mrcnn_short_v2.csv")
     # trap_data = TrapData("FT_BC8_yolo_short_v2.csv")
     trap_data = TrapData("FT_BC8_yolo_short.csv")
 
@@ -34,16 +36,26 @@ def trap_graph_tests():
     #     trap_graph = TrapGraph(df=trap_df, run_graph=False)
     #     print(t, trap_graph.root_endpoints)
 
-    b = trap_data.get_single_trap_df(trap_num=1)
-    c = TrapGraph(b)
+    b = trap_data.get_single_trap_df(trap_num=15)
+    c = TrapGraph(b, run_graph=True)
 
-    for v in c.branch_nodes:
-        print(v)
+    print(len(c.branch_nodes), c.branch_nodes)
+    print(len(c.root_branch_nodes), c.root_branch_nodes)
+    print(c.t_stop)
 
-    print(len(c.branch_nodes))
+    # obj_count = c.get_divisions_from_obj_count()
+
+    # print(obj_count)
+
+    # for v in c.branch_nodes:
+    #     print(v)
+    #
+    # print(len(c.branch_nodes))
 
 
 if __name__ == "__main__":
 
     trap_graph_tests()
 
+    # a = parse_experimental_results("experimental_results/BC8_rls_exp.csv")
+    # print(a)
