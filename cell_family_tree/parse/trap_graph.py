@@ -16,9 +16,11 @@ class TrapGraph:
         self.file_name = file_name
         self.trap_num = None
         self.graph = {}
+        self.t_stop = self.df["time_num"].max()
         self.root_nodes = []
         self.root_pred_ids = []
         self.branch_nodes = []
+        self.root_branch_nodes = []
         self.time_num_obj = []
         self.root_endpoints = {}
         self.graph_helper = {}
@@ -96,6 +98,8 @@ class TrapGraph:
             if self.root_endpoints[root_endpoint] == 0:
                 self.root_endpoints[root_endpoint] = self.df["time_num"].max()
 
+        self.t_stop = self.df["time_num"].max()
+
     def _process_time_step(self, step_info):
         """
         Doc Doc Doc
@@ -119,6 +123,8 @@ class TrapGraph:
             if step_arr in parsed_steps:
                 branch_node_name = "{}.{}".format(step["time_num"], step["predecessorID"])
                 self.branch_nodes.append(branch_node_name)
+                if step["predecessorID"] in self.root_pred_ids:
+                    self.root_branch_nodes.append(branch_node_name)
                 try:
                     next_pred_id = assign_pred_ids.pop()    # Pull from sorted assign_pred_ids, de-que
                 except IndexError:
@@ -134,7 +140,7 @@ class TrapGraph:
                         print("POP ERROR - Isolated Existing", step_arr, isolated_pred_id)
                     next_pred_id = isolated_pred_id
 
-                # print("GOT BRANCH:", branch_node_name, step_arr, "NextPredID:{}".format(next_pred_id))
+                print("GOT BRANCH:", branch_node_name, step_arr, "NextPredID:{}".format(next_pred_id))
                 step["predecessorID"] = next_pred_id
                 self.graph_helper["pred_id_last_node"][step["predecessorID"]] = branch_node_name
                 active_pred_ids += [next_pred_id]
@@ -153,6 +159,7 @@ class TrapGraph:
         for t in self.df["time_num"].unique()[1:]:
 
             # Run another filter of our initial filtered df from above on loop time step.
+            last_time_df = self.df.query("time_num == {}".format(t-1))
             time_df = self.df.query("time_num == {}".format(t))
             next_time_df = self.df.query("time_num == {}".format(t+1))
 
@@ -160,6 +167,7 @@ class TrapGraph:
             len_time_step = len(time_df.index)
             len_next_time_step = len(next_time_df.index)
             next_time_step_pred_ids = list(next_time_df["predecessorID"].unique())
+            last_time_step_pred_ids = list(last_time_df["predecessorID"].unique())    # Track this better...
             self.graph_helper["current_num_obj"] = len_time_step
             self.graph_helper["next_num_obj"] = len_next_time_step
             self.graph_helper["next_pred_ids"] = next_time_step_pred_ids
@@ -169,12 +177,95 @@ class TrapGraph:
 
             step_info = time_df.to_dict('records')
 
-            # Check for existence of root/mother cell, if not present, return since main branch has ended.
             active_pred_ids = [v["predecessorID"] for v in step_info]
+
+            # Early Termination Growth
+            if (len(active_pred_ids) - len(last_time_step_pred_ids)) >= 2:
+                if t > 200:
+                    print("Large Object Growth Shift In TimeStep > 200 - Ending Parse")
+                    self.t_stop = t
+                    return
+
+            # Early Termination Reduction
+            if (len(active_pred_ids) - len(next_time_step_pred_ids)) >= 2:
+                if t > 200:
+                    print("Large Object Reduction Shift In TimeStep > 200 - Ending Parse")
+                    self.t_stop = t
+                    return
+
+            # Check for existence of root/mother cell, if not present, attempt re-assignment logic
             for root_pred_id in self.root_pred_ids:
                 if root_pred_id not in active_pred_ids:
                     print("Root:{} absent in step:{}".format(root_pred_id, step_info))
-                    return
+                    print("Checking For Single Instance In Next Step")
+                    if next_time_step_pred_ids.count(root_pred_id) == 1:
+                        print("Found Root:{} in Next Step:{}".format(root_pred_id, next_time_step_pred_ids))
+                        print("Last Step:{}".format(last_time_step_pred_ids))
+                        print("Current Step:{}".format(active_pred_ids))
+                        print("Performing PredID Re-Assignment at time:{}".format(t))
+                        has_modified_pred_ids = []
+                        for i, s in enumerate(step_info):
+                            # CASE - Only Root Remains
+                            if len(set(next_time_step_pred_ids)) == len(self.root_pred_ids):
+                                if len(has_modified_pred_ids):
+                                    continue
+                                has_modified_pred_ids.append(s["predecessorID"])
+                                s["predecessorID"] = root_pred_id
+                                continue
+                            # CASE - Single Root Shift
+                            if len(set(active_pred_ids)) == len(self.root_pred_ids):
+                                has_modified_pred_ids.append(s["predecessorID"])
+                                s["predecessorID"] = root_pred_id
+                                continue
+                            # CASE - Non-root is fine
+                            if s["predecessorID"] in last_time_step_pred_ids:
+                                if s["predecessorID"] in next_time_step_pred_ids:
+                                    continue
+                            # CASE - Changing a new non-root to root (2 2 to 1 1 example)
+                            if s["predecessorID"] not in last_time_step_pred_ids:
+                                has_modified_pred_ids.append(s["predecessorID"])
+                                s["predecessorID"] = root_pred_id
+                                continue
+                            # CASE = Changing an existing non-root to root (3 4 to 1 2 example)
+                            if s["predecessorID"] in last_time_step_pred_ids:
+                                if len(has_modified_pred_ids) < len(self.root_pred_ids):
+                                    has_modified_pred_ids.append(s["predecessorID"])
+                                    s["predecessorID"] = root_pred_id
+                                    continue
+                            # CASE - Changing a non-root to another non-root, 1 to 1
+                            if i+1 == len(next_time_step_pred_ids):
+                                new_pred_ids = set(set([v["predecessorID"] for v in step_info])).difference(set(next_time_step_pred_ids))
+                                new_pred_ids = list(new_pred_ids)
+                                try:
+                                    s["predecessorID"] = new_pred_ids[0]
+                                except IndexError:
+                                    print("Case 3 Error")
+                                    print(t)
+                                    print(new_pred_ids)
+                                    print(has_modified_pred_ids)
+                                    print([v["predecessorID"] for v in step_info])
+                                    print(step_info)
+                                    raise ValueError("Case 3 Error", len(self.root_branch_nodes))
+                                has_modified_pred_ids.append(new_pred_ids[0])
+                                continue
+                            # CASE - Changing a non-root to another non-root, 1 to many
+                            if s["predecessorID"] in last_time_step_pred_ids:
+                                if s["predecessorID"] not in next_time_step_pred_ids:
+                                    new_pred_ids = set(next_time_step_pred_ids).difference(set(has_modified_pred_ids + self.root_pred_ids))
+                                    new_pred_ids = list(new_pred_ids)
+                                    new_pred_ids.sort()
+                                    try:
+                                        s["predecessorID"] = new_pred_ids[0]
+                                    except IndexError:
+                                        print("Case 4 Error")
+                                        print(t)
+                                        print(new_pred_ids)
+                                        print(has_modified_pred_ids)
+                                        print(step_info)
+                                        raise ValueError("Case 4 Error", len(self.root_branch_nodes))
+                                    has_modified_pred_ids.append(new_pred_ids[0])
+
+                        print("Current Step Re:{}".format([v["predecessorID"] for v in step_info]))
 
             step_info = self._process_time_step(step_info)
 
@@ -208,7 +299,7 @@ class TrapGraph:
                     print(pred_id_last_node_name)
                     print(node_name)
                     print(self.graph_helper)
-                    sys.exit()
+                    raise ValueError("Pred ID LAST NODE FAIL")
 
                 self.graph_helper["pred_id_last_node"][pred_id] = node_name
 
