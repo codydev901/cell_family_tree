@@ -1,6 +1,7 @@
 from parse.trap_data import TrapData
 from parse.trap_graph import TrapGraph
 from parse.trap_data_raw import TrapDataRaw
+from parse.trap_graph_raw import TrapGraphRaw
 from parse.helpers import parse_experimental_results
 
 """
@@ -56,13 +57,25 @@ def trap_graph_tests():
 
 def trap_data_raw_tests():
 
-    a = TrapDataRaw("BC8_mrcnn_v1.csv")
-    a.plot_single_trap_df(trap_num=1, t_stop=None)
+    # BC8_yolo_v1.csv
+    # BC8_mrcnn_v1.csv
 
+    a = TrapDataRaw("BC8_mrcnn_v1.csv")
+    a.plot_single_trap_df(trap_num=37, t_stop=None)
+
+
+def trap_data_raw_graph_tests():
+
+    file_name = "BC8_mrcnn_v1.csv"
+
+    a = TrapDataRaw("BC8_mrcnn_v1.csv")
+    b = a.get_single_trap_df(trap_num=37, t_stop=None)
+    c = TrapGraphRaw(df=b, file_name=file_name)
+
+    print("AHH")
 
 if __name__ == "__main__":
 
-    trap_data_raw_tests()
+    # trap_data_raw_tests()
 
-    # a = parse_experimental_results("experimental_results/BC8_rls_exp.csv")
-    # print(a)
+    trap_data_raw_graph_tests()
