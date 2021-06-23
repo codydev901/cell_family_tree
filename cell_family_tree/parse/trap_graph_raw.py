@@ -1,6 +1,8 @@
 import pandas as pd
+import numpy as np
 import sys
 import os
+from scipy.signal import argrelextrema
 from .helpers import write_csv
 
 """
@@ -17,6 +19,8 @@ class TrapGraphRaw:
         self.graph = {}
         self.t_stop = self.df["time_num"].max()
         self.time_sum_area = []
+        self.time_sum_area_minima = []
+        self.time_sum_area_maxima = []
         self.time_num_obj = []
         self.branch_nodes = []
         self._on_init()
@@ -25,16 +29,28 @@ class TrapGraphRaw:
 
         starting_num_objs = self.df.query("time_num == 1")["total_objs"].tolist()[0]
         if starting_num_objs != 1:
-            raise ValueError("Multiple or No Objects at T1 - Not Supported")
+            raise ValueError("Multiple or No Objects at T1 - Not supported at the moment")
 
         self._make_graph()
 
-    def _process_time_step(self, step_info):
-        """
-        Doc Doc Doc
-        """
+    def _next_extrema_helper(self, i, return_minima=True):
 
-        pass
+        if return_minima:
+            next_minima_index = self.t_stop-1
+            for i1, v in enumerate(self.time_sum_area_minima):
+                if v == 1 and i1 > i:
+                    next_minima_index = i1
+                    break
+
+            return self.time_sum_area[next_minima_index], self.time_num_obj[next_minima_index], next_minima_index+1
+
+        next_maxima_index = self.t_stop-1
+        for i1, v in enumerate(self.time_sum_area_maxima):
+            if v == 1 and i1 > i:
+                next_maxima_index = i1
+                break
+
+        return self.time_sum_area[next_maxima_index], self.time_num_obj[next_maxima_index], next_maxima_index+1
 
     def _make_graph(self):
         """
@@ -50,50 +66,138 @@ class TrapGraphRaw:
             self.time_num_obj.append(total_obj)
             self.time_sum_area.append(sum_area)
 
-        avg_cell_area = sum([a/c for a, c in zip(self.time_sum_area, self.time_num_obj)]) / len(self.time_sum_area)
+        # Determine Changes in Sum Area From 1 to 2 Objs. Used for same_cell_noise below.
+        observed_area_division_increments = []
+        for i, v in enumerate(self.time_num_obj[:-1]):
+            if v == 1 and self.time_num_obj[i+1] == 2:
+                curr_area = self.time_sum_area[i]
+                next_area = self.time_sum_area[i+1]
+                observed_area_division_increments.append(next_area - curr_area)
 
+        # Determine Sum Area Local Minima. Equate to time_num by assigning 1 to existence of local minima, 0 to not.
+        sum_area_local_minima = list(argrelextrema(np.array(self.time_sum_area), np.less)[0])
+        for i in range(len(self.time_sum_area)):
+            if i in sum_area_local_minima:
+                self.time_sum_area_minima.append(1)
+            else:
+                self.time_sum_area_minima.append(0)
+
+        # Determine Sum Area Local Maxima. Equate to time_num by assigning 1 to existence of local maxima, 0 to not.
+        sum_area_local_maxima = list(argrelextrema(np.array(self.time_sum_area), np.greater)[0])
+        for i in range(len(self.time_sum_area)):
+            if i in sum_area_local_maxima:
+                self.time_sum_area_maxima.append(1)
+            else:
+                self.time_sum_area_maxima.append(0)
+
+        # Parameters
+        same_cell_noise = np.min(observed_area_division_increments)  # Threshold to ignore a local minima.
+
+        # Track State
+        is_dividing = False     # Mother cell in process of dividing cannot bud into another cell. Branching Locked.
+        will_divide = False     # Mother cell division detected beginning next time step.
         last_mc_node_name = None
-        branch_active = False
-        branch_start_area = None
-        last_area = self.time_sum_area[0]
+        last_sum_area = self.time_sum_area[0]
+        num_divisions = 0
+        clean_divisions = 0
 
-        num_branches = 0
-
+        # RLS Logic
         for i, t in enumerate(self.df["time_num"].unique()):
+
+            # Early Stop - No Cells Detected
+            if self.time_num_obj[i] == 0:
+                break
 
             mc_node_name = "{}.1".format(t)
 
             current_area = self.time_sum_area[i]
+            current_obj_count = self.time_num_obj[i]
             next_area = self.time_sum_area[i+1] if t != self.t_stop else self.time_sum_area[i]
+            at_local_minima = self.time_sum_area_minima[i]
 
-            if not branch_active:
-                if next_area - current_area >= 15:
-                    print("Branch Starting: ", t)
-                    branch_active = True
-                    num_branches += 1
-            else:
-                dc_node_name = "{}.2".format(t)
-                if current_area - next_area >= 15:
-                    print("Branch Ending: ", t)
-                    branch_active = False
+            if at_local_minima:  # Reach Local Minima means we MIGHT have a branch start NEXT step
 
-            if not branch_active:
-                self.graph[mc_node_name] = []
-                if last_mc_node_name:
-                    self.graph[mc_node_name].append(last_mc_node_name)
-                    self.graph[last_mc_node_name].append(mc_node_name)
-                last_mc_node_name = mc_node_name
+                nlmax_area, nlmax_obj_count, nlmax_time_num = self._next_extrema_helper(i, return_minima=False)
+                nlmin_area, nlmin_obj_count, nlmin_time_num = self._next_extrema_helper(i, return_minima=True)
 
-            if self.time_num_obj[i] == 0:
-                break
+                print("*")
+                # Clean Division
+                if current_obj_count == 1 and nlmin_obj_count == 1 and nlmax_obj_count == 2:
+                    print("Clean Division")
+                    print(nlmax_time_num)
+                    clean_divisions += 1
 
-            if next_area - current_area > 100:
-                break
+                print("At Local Minima!")
+                print(current_area, t, self.time_num_obj[i])
+                print(nlmax_area, nlmax_time_num, nlmax_obj_count)
+                print(nlmin_area, nlmin_time_num, nlmin_obj_count)
 
-        print(self.graph)
-        print(num_branches)
-        print(self.time_sum_area)
-        print(self.time_num_obj)
+                # sys.exit()
+
+        print("Clean Divisions:{}".format(clean_divisions))
+
+
+
+
+
+
+       #  sys.exit()
+
+        # Debug
+        # for i in range(len(self.time_sum_area)):
+        #     print(i+1, self.time_num_obj[i], self.time_sum_area[i], self.time_sum_area_minima[i], self.time_sum_area_maxima[i])
+
+
+
+        # avg_cell_area = sum([a/c for a, c in zip(self.time_sum_area, self.time_num_obj)]) / len(self.time_sum_area)
+        #
+        # last_mc_node_name = None
+        # branch_active = False
+        # branch_start_area = None
+        # last_area = self.time_sum_area[0]
+        #
+        # num_branches = 0
+        #
+        # cats = argrelextrema(np.array(self.time_sum_area), np.less)
+        #
+        # print(self.time_sum_area)
+        # print(cats)
+
+        # for i, t in enumerate(self.df["time_num"].unique()):
+        #
+        #     mc_node_name = "{}.1".format(t)
+        #
+        #     current_area = self.time_sum_area[i]
+        #     next_area = self.time_sum_area[i+1] if t != self.t_stop else self.time_sum_area[i]
+        #
+        #     if not branch_active:
+        #         if next_area - current_area >= 15:
+        #             print("Branch Starting: ", t)
+        #             branch_active = True
+        #             num_branches += 1
+        #     else:
+        #         dc_node_name = "{}.2".format(t)
+        #         if current_area - next_area >= 15:
+        #             print("Branch Ending: ", t)
+        #             branch_active = False
+        #
+        #     if not branch_active:
+        #         self.graph[mc_node_name] = []
+        #         if last_mc_node_name:
+        #             self.graph[mc_node_name].append(last_mc_node_name)
+        #             self.graph[last_mc_node_name].append(mc_node_name)
+        #         last_mc_node_name = mc_node_name
+        #
+        #     if self.time_num_obj[i] == 0:
+        #         break
+        #
+        #     if next_area - current_area > 100:
+        #         break
+        #
+        # print(self.graph)
+        # print(num_branches)
+        # print(self.time_sum_area)
+        # print(self.time_num_obj)
 
 
 

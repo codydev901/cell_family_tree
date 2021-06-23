@@ -61,7 +61,7 @@ def trap_data_raw_tests():
     # BC8_mrcnn_v1.csv
 
     a = TrapDataRaw("BC8_mrcnn_v1.csv")
-    a.plot_single_trap_df(trap_num=37, t_stop=None)
+    a.plot_single_trap_df(trap_num=1, t_stop=None)
 
 
 def trap_data_raw_graph_tests():
@@ -69,7 +69,7 @@ def trap_data_raw_graph_tests():
     file_name = "BC8_mrcnn_v1.csv"
 
     a = TrapDataRaw("BC8_mrcnn_v1.csv")
-    b = a.get_single_trap_df(trap_num=37, t_stop=None)
+    b = a.get_single_trap_df(trap_num=1, t_stop=None)
     c = TrapGraphRaw(df=b, file_name=file_name)
 
     print("AHH")
