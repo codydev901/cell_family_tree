@@ -6,6 +6,8 @@ from .helpers import write_csv
 pd.options.mode.chained_assignment = None   # For predID assignment on query
 import plotly.graph_objs as go
 import numpy as np
+import numpy as np
+from scipy.optimize import leastsq
 
 """
 First parsing step. Concerned with the data files as a whole. -- FOR RAW FILES

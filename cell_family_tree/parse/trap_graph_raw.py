@@ -33,24 +33,26 @@ class TrapGraphRaw:
 
         self._make_graph()
 
-    def _next_extrema_helper(self, i, return_minima=True):
+    def _next_minima_helper(self, i):
+        """
+        Doc Doc Doc
+        """
 
-        if return_minima:
-            next_minima_index = self.t_stop-1
-            for i1, v in enumerate(self.time_sum_area_minima):
-                if v == 1 and i1 > i:
-                    next_minima_index = i1
-                    break
-
-            return self.time_sum_area[next_minima_index], self.time_num_obj[next_minima_index], next_minima_index+1
-
-        next_maxima_index = self.t_stop-1
-        for i1, v in enumerate(self.time_sum_area_maxima):
+        next_minima_index = self.t_stop-1
+        for i1, v in enumerate(self.time_sum_area_minima):
             if v == 1 and i1 > i:
-                next_maxima_index = i1
+                next_minima_index = i1
                 break
 
-        return self.time_sum_area[next_maxima_index], self.time_num_obj[next_maxima_index], next_maxima_index+1
+        try:
+            max_area = max(self.time_sum_area[i:next_minima_index])
+        except ValueError:
+            max_area = None
+
+        return {"nlm_index": next_minima_index,
+                "nlm_max_area": max_area,
+                "nlm_distance": next_minima_index - i,
+                }
 
     def _make_graph(self):
         """
@@ -95,11 +97,11 @@ class TrapGraphRaw:
 
         # Track State
         is_dividing = False     # Mother cell in process of dividing cannot bud into another cell. Branching Locked.
-        will_divide = False     # Mother cell division detected beginning next time step.
         last_mc_node_name = None
-        last_sum_area = self.time_sum_area[0]
+        division_start_index = None
+        division_end_index = None
         num_divisions = 0
-        clean_divisions = 0
+        time_since_last_division = 0
 
         # RLS Logic
         for i, t in enumerate(self.df["time_num"].unique()):
@@ -108,33 +110,34 @@ class TrapGraphRaw:
             if self.time_num_obj[i] == 0:
                 break
 
+            # End Division State if applicable
+            if i == division_end_index:
+                is_dividing = False
+                num_divisions += 1
+                print("Division Complete")
+                print(division_start_index+1, division_end_index+1, num_divisions)
+
             mc_node_name = "{}.1".format(t)
 
             current_area = self.time_sum_area[i]
-            current_obj_count = self.time_num_obj[i]
-            next_area = self.time_sum_area[i+1] if t != self.t_stop else self.time_sum_area[i]
             at_local_minima = self.time_sum_area_minima[i]
 
             if at_local_minima:  # Reach Local Minima means we MIGHT have a branch start NEXT step
 
-                nlmax_area, nlmax_obj_count, nlmax_time_num = self._next_extrema_helper(i, return_minima=False)
-                nlmin_area, nlmin_obj_count, nlmin_time_num = self._next_extrema_helper(i, return_minima=True)
+                nlmin_info = self._next_minima_helper(i)
 
-                print("*")
-                # Clean Division
-                if current_obj_count == 1 and nlmin_obj_count == 1 and nlmax_obj_count == 2:
-                    print("Clean Division")
-                    print(nlmax_time_num)
-                    clean_divisions += 1
+                if nlmin_info["nlm_max_area"] > current_area + same_cell_noise:
+                    division_start_index = i
+                    if nlmin_info["nlm_distance"] >= 5:
+                        is_dividing = True
+                        division_end_index = nlmin_info["nlm_index"]
+                    else:
+                        is_dividing = True
+                        nlmin_info = self._next_minima_helper(nlmin_info["nlm_index"])
+                        division_end_index = nlmin_info["nlm_index"]
 
-                print("At Local Minima!")
-                print(current_area, t, self.time_num_obj[i])
-                print(nlmax_area, nlmax_time_num, nlmax_obj_count)
-                print(nlmin_area, nlmin_time_num, nlmin_obj_count)
+            
 
-                # sys.exit()
-
-        print("Clean Divisions:{}".format(clean_divisions))
 
 
 
