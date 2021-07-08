@@ -117,15 +117,12 @@ def main():
     ground_reg = lin_reg(x=[v[0] for v in trap_index], y=[v[1] for v in ground_truth])
     branch_reg = lin_reg(x=[v[0] for v in trap_index], y=[v[1] for v in branch_rls])
 
+    print("Ground Truth Regression Stats")
     print(ground_reg)
+    print("Branch RLS Regression Stats")
     print(branch_reg)
 
     plot_scatter(branch_rls, ground_truth, trap_index, branch_reg, ground_reg)
-
-    # print("Ground Sorted 1")
-    # print(ground_truth)
-    # print("Branch Sorted 1")
-    # print(branch_rls)
 
 
 
