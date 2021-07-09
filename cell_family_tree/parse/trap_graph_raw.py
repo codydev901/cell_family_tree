@@ -64,6 +64,166 @@ class TrapGraphRaw:
                 }
 
     def _make_graph(self):
+
+        # Pre-Populate SumArea & TimeNumObjs
+        for t in self.df["time_num"].unique():
+            time_df = self.df.query("time_num == {}".format(t))
+            total_obj = time_df["total_objs"].unique()[0]
+            sum_area = sum(time_df["area"])
+            self.time_num_obj.append(total_obj)
+            self.time_sum_area.append(sum_area)
+
+        # Determine Changes in Sum Area From 2 to 1 Objs. Used for same_cell_noise below.
+        observed_area_division_decrements = []
+        for i, v in enumerate(self.time_num_obj[:100]):
+            if v == 2 and self.time_num_obj[i + 1] == 1:
+                curr_area = self.time_sum_area[i]
+                next_area = self.time_sum_area[i + 1]
+                observed_area_division_decrements.append(curr_area - next_area)
+
+        # Determine Changes in Sum Area From 1 to 2 Objs. Used for same_cell_noise below.
+        observed_area_division_increments = []
+        for i, v in enumerate(self.time_num_obj[:100]):
+            if v == 1 and self.time_num_obj[i + 1] == 2:
+                curr_area = self.time_sum_area[i]
+                next_area = self.time_sum_area[i + 1]
+                observed_area_division_increments.append(next_area - curr_area)
+
+        # Parameters
+        print(observed_area_division_increments)
+        print(observed_area_division_decrements)
+
+        division_area_increment = np.min(observed_area_division_increments)
+        try:
+            division_area_decrement = np.min(observed_area_division_decrements)
+        except ValueError:
+            division_area_decrement = division_area_increment
+
+        # sys.exit()
+
+        # Track State
+        last_area = self.time_sum_area[0]
+        last_obj_count = self.time_num_obj[0]
+        last_mother_cell_area = [self.time_sum_area[0], self.time_sum_area[0]]
+        max_mother_cell_change = 0
+        curr_division_peak = 0
+        no_division_min = self.time_sum_area[0]
+        is_dividing = False
+        division_start_index = None
+        time_since_last_division = 0
+
+        for i, t in enumerate(self.df["time_num"].unique()):
+
+            current_area = self.time_sum_area[i]
+            current_obj_count = self.time_num_obj[i]
+
+            if current_obj_count == 1:
+                last_mother_cell_area.append(current_area)
+
+            mother_cell_change = abs(last_mother_cell_area[-1] - last_mother_cell_area[-2])
+            if mother_cell_change > max_mother_cell_change:
+                max_mother_cell_change = mother_cell_change
+
+            # EARLY STOP
+            # Early Stop - No Cells Detected
+            if self.time_num_obj[i] == 0:
+                self.stop_condition = "No Cells"
+                self.t_stop = t
+                print("Break No Cells", t)
+                break
+
+            # Early Stop - Time Since Last Division
+            if time_since_last_division >= 5 and self.num_divisions != 0:
+                self.stop_condition = "No Divisions"
+                self.t_stop = t
+                print("Break No Divisions", t)
+                break
+
+            # Early Stop - Next 5 Cells Little Area Change
+            if np.std(self.time_sum_area[i:i+5]) <= 5.0 and self.num_divisions != 0:
+                self.stop_condition = "No Divisions - Area STD"
+                self.t_stop = t
+                print("Break No Divisions - Area STD", t)
+                break
+
+            # DIVISION START/STOP
+            # Will Clean this up, but it works for moment.
+            while True:
+
+                # End Division
+                if is_dividing:
+
+                    if current_area >= curr_division_peak:
+                        curr_division_peak = current_area
+
+                    # Attempt End Division From Object Count
+                    if current_obj_count == 1 and last_obj_count == 2:
+                        is_dividing = False
+                        no_division_min = 100000
+                        division_end_index = i-1
+                        self.num_divisions += 1
+                        self.division_events.append({"t_start": division_start_index + 1,
+                                                     "t_stop": division_end_index + 1,
+                                                     "num_division": self.num_divisions,
+                                                     "length": division_end_index - division_start_index})
+                        print("Obj Count End Division", t, self.num_divisions)
+                        break
+
+                    # Attempt End Division From Change in Area
+                    print(self.num_divisions, division_area_decrement, max_mother_cell_change, division_area_decrement-max_mother_cell_change)
+                    if curr_division_peak - current_area >= (division_area_decrement - max_mother_cell_change):
+
+                        is_dividing = False
+                        no_division_min = 100000
+                        division_end_index = i-1
+                        self.num_divisions += 1
+                        self.division_events.append({"t_start": division_start_index + 1,
+                                                     "t_stop": division_end_index + 1,
+                                                     "num_division": self.num_divisions,
+                                                     "length": division_end_index - division_start_index})
+                        print("Area End Division", t, self.num_divisions)
+                        break
+                    break
+
+                # Start Division
+                else:
+
+                    if current_area <= no_division_min:
+                        no_division_min = current_area
+
+                    # Attempt Start Division From Object Count
+                    if current_obj_count == 2 and last_obj_count == 1:
+                        is_dividing = True
+                        curr_division_peak = 0
+                        division_start_index = i
+                        print("Obj Count Start Division", t, self.num_divisions)
+                        break
+
+                    # Don't Allow Area for first division
+                    if self.num_divisions < 1:
+                        break
+
+                    # Attempt Start Division From Change in Area
+                    if current_area - last_area >= division_area_increment:
+                        is_dividing = True
+                        curr_division_peak = 0
+                        division_start_index = i
+                        print("Area Start Division", t, self.num_divisions)
+                        break
+
+                    break
+
+            last_area = current_area
+            last_obj_count = current_obj_count
+
+            if not is_dividing:
+                time_since_last_division += 1
+            else:
+                time_since_last_division = 0
+
+        print(self.division_events)
+
+    def _make_graph_local_mind(self):
         """
         Doc Doc Doc
         """
@@ -197,7 +357,7 @@ class TrapGraphRaw:
                           x1=d_ev["t_stop"],
                           fillcolor="red",
                           opacity=0.2,
-                          annotation_text=d_ev["previous_divisions"]+1)
+                          annotation_text=d_ev["num_division"])
 
 
         fig.show()

@@ -1,6 +1,8 @@
 import os
 from parse.trap_data import TrapData
 from parse.trap_graph import TrapGraph
+from parse.trap_data_raw import TrapDataRaw
+from parse.trap_graph_raw import TrapGraphRaw
 from parse.helpers import write_csv, parse_experimental_results
 
 """
@@ -69,7 +71,7 @@ def rls_analysis(source_files):
         write_csv("reports/{}_RLSAnalysis.csv".format(s.replace(".csv", "")), res)
 
 
-def rls_from_obj_analysis(source_files):
+def rls_area_analysis(source_file):
     """
     Writes .csv with following info for all traps in a given source file:
     trap_num, branch_count, time_num_endpoint (the time_num the algo cuts off)
@@ -79,33 +81,32 @@ def rls_from_obj_analysis(source_files):
 
     exp_rls_results = parse_experimental_results("experimental_results/BC8_rls_exp.csv")
 
-    results = {}
-    traps = []
-    for s in source_files:
-        results[s] = {}
-        trap_data = TrapData(s)
-        for t in trap_data.traps:
-            results[s][t] = {}
-            trap_df = trap_data.get_single_trap_df(trap_num=t)
-            trap_graph = TrapGraph(trap_df, run_graph=False)
-            if len(trap_graph.root_nodes) != 1:
-                continue
-            if t not in traps:
-                traps.append(t)
-            results[s][t] = trap_graph.get_divisions_from_obj_count()
+    print(exp_rls_results)
 
-    file_names = list(results.keys())
-    res = [["trap_num"] + file_names + ["experimental"] + ["{}_EndPoint".format(v) for v in file_names]]
-    for t in traps:
-        trap_res = [t]
-        end_points = []
-        for s in source_files:
-            trap_res.append(results[s][t]["num_branches"])
-            end_points.append(results[s][t]["break_time_num"])
-        trap_res.append(exp_rls_results[t])
-        res.append(trap_res + end_points)
+    trap_data = TrapDataRaw(source_file)
+    for t in exp_rls_results:
+        try:
+            trap_graph = TrapGraphRaw(df=trap_data.get_single_trap_df(t))
+            exp_rls_results[t][source_file] = {"num_divisions": trap_graph.num_divisions,
+                                     "t_stop": trap_graph.t_stop,
+                                     "stop_condition": trap_graph.stop_condition
+                                     }
+        except ValueError:
+            continue
 
-    write_csv("reports/all_source_obj_count_branch_count.csv", res)
+    print(exp_rls_results)
+
+    res = [["trap_num", "experimental", "predicted", "t_stop", "stop_condition"]]
+    for t in exp_rls_results:
+        if source_file in exp_rls_results[t]:
+            res.append([t,
+                        exp_rls_results[t]["ground_truth"],
+                        exp_rls_results[t][source_file]["num_divisions"],
+                        exp_rls_results[t][source_file]["t_stop"],
+                        exp_rls_results[t][source_file]["stop_condition"]
+                        ])
+
+    write_csv("reports/{}_AreaRLS.csv".format(source_file.replace(".csv", "")), res)
 
 
 def main():
@@ -121,9 +122,11 @@ def main():
 
     # root_cell_endpoint_analysis(source_files)
 
-    rls_analysis(source_files)
+    # rls_analysis(source_files)
 
-    # rls_from_obj_analysis(source_files)
+    source_files = ["BC8_yolo_v1.csv"]
+
+    rls_area_analysis(source_files[0])
 
 
 if __name__ == "__main__":

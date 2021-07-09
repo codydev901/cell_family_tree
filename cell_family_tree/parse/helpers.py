@@ -30,11 +30,13 @@ def parse_experimental_results(file_path):
         if not r:
             continue
         try:
-            exp_res[int(r[0])] = int(r[1])
+            exp_res[int(r[0])] = {"ground_truth": int(r[1])}
         except ValueError:
             if "l" in r[1]:
-                exp_res[int(r[0])] = int(r[1].replace("l", ""))
+                exp_res[int(r[0])] = {"ground_truth": int(r[1].replace("l", ""))}
+            elif "e" in r[1]:
+                exp_res[int(r[0])] = {"ground_truth": 0}
             else:
-                exp_res[int(r[0])] = "non_int:{}".format(r[1])
+                exp_res[int(r[0])] = {"ground_truth": "non_int:{}".format(r[1])}
 
     return exp_res
