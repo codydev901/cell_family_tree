@@ -9,11 +9,16 @@ Doc Doc Doc
 
 
 def parse_results():
-    result_df = pd.read_csv("reports/FT_BC8_yolo_short_RLSAnalysis.csv")
+
+    # result_df = pd.read_csv("reports/FT_BC8_yolo_short_RLSAnalysis.csv")
+    # result_df = pd.read_csv("reports/BC8_yolo_v1_AreaRLS.csv")
+    result_df = pd.read_csv("reports/BC8_yolo_v1_PeakRLS.csv")
 
     trap_nums = result_df["trap_num"].tolist()
     ground_truth = result_df["experimental"].tolist()
-    branch_rls = result_df["root_branch_count"].tolist()
+
+    # branch_rls = result_df["root_branch_count"].tolist()
+    branch_rls = result_df["predicted"].tolist()
 
     # Associate RLS with trap num
     ground_truth = [[t, v] for t, v in zip(trap_nums, ground_truth)]

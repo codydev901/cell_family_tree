@@ -3,6 +3,7 @@ import numpy as np
 import sys
 import os
 from scipy.signal import argrelextrema
+from scipy.signal import find_peaks, find_peaks_cwt
 import plotly.graph_objs as go
 from .helpers import write_csv
 
@@ -136,7 +137,7 @@ class TrapGraphRaw:
             if time_since_last_division >= 5 and self.num_divisions != 0:
                 self.stop_condition = "No Divisions"
                 self.t_stop = t
-                print("Break No Divisions", t)
+                print("Break No Divisions", t, no_division_min)
                 break
 
             # Early Stop - Next 5 Cells Little Area Change
@@ -170,6 +171,8 @@ class TrapGraphRaw:
                         break
 
                     # Attempt End Division From Change in Area
+                    print("AHHHH")
+                    print(curr_division_peak, )
                     print(self.num_divisions, division_area_decrement, max_mother_cell_change, division_area_decrement-max_mother_cell_change)
                     if curr_division_peak - current_area >= (division_area_decrement - max_mother_cell_change):
 
@@ -223,7 +226,7 @@ class TrapGraphRaw:
 
         print(self.division_events)
 
-    def _make_graph_local_mind(self):
+    def _make_graph_local_min(self):
         """
         Doc Doc Doc
         """
@@ -361,7 +364,6 @@ class TrapGraphRaw:
 
 
         fig.show()
-
 
     def write_cytoscape_network_csv(self):
 

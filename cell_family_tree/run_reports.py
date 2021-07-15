@@ -1,6 +1,7 @@
 import os
 from parse.trap_data import TrapData
 from parse.trap_graph import TrapGraph
+from parse.trap_graph_peak import TrapGraphPeak
 from parse.trap_data_raw import TrapDataRaw
 from parse.trap_graph_raw import TrapGraphRaw
 from parse.helpers import write_csv, parse_experimental_results
@@ -109,6 +110,44 @@ def rls_area_analysis(source_file):
     write_csv("reports/{}_AreaRLS.csv".format(source_file.replace(".csv", "")), res)
 
 
+def rls_peak_analysis(source_file):
+    """
+    Writes .csv with following info for all traps in a given source file:
+    trap_num, branch_count, time_num_endpoint (the time_num the algo cuts off)
+    """
+
+    print("Running RLS ObjCount Meta-Analysis")
+
+    exp_rls_results = parse_experimental_results("experimental_results/BC8_rls_exp.csv")
+
+    print(exp_rls_results)
+
+    trap_data = TrapDataRaw(source_file)
+    for t in exp_rls_results:
+        try:
+            trap_graph = TrapGraphPeak(df=trap_data.get_single_trap_df(t))
+            exp_rls_results[t][source_file] = {"num_divisions": trap_graph.num_divisions,
+                                               "t_stop": trap_graph.t_stop,
+                                               "stop_condition": trap_graph.stop_condition
+                                               }
+        except ValueError:
+            continue
+
+    print(exp_rls_results)
+
+    res = [["trap_num", "experimental", "predicted", "t_stop", "stop_condition"]]
+    for t in exp_rls_results:
+        if source_file in exp_rls_results[t]:
+            res.append([t,
+                        exp_rls_results[t]["ground_truth"],
+                        exp_rls_results[t][source_file]["num_divisions"],
+                        exp_rls_results[t][source_file]["t_stop"],
+                        exp_rls_results[t][source_file]["stop_condition"]
+                        ])
+
+    write_csv("reports/{}_PeakRLS.csv".format(source_file.replace(".csv", "")), res)
+
+
 def main():
 
     if not os.path.exists("reports"):
@@ -116,7 +155,7 @@ def main():
 
     # source_files = os.listdir("data")
 
-    source_files = ["FT_BC8_yolo_short.csv"]
+    # source_files = ["FT_BC8_yolo_short.csv"]
 
     # trap_data_meta_analysis(source_files)
 
@@ -126,7 +165,7 @@ def main():
 
     source_files = ["BC8_yolo_v1.csv"]
 
-    rls_area_analysis(source_files[0])
+    rls_peak_analysis(source_files[0])
 
 
 if __name__ == "__main__":

@@ -8,6 +8,7 @@ import plotly.graph_objs as go
 import numpy as np
 import numpy as np
 from scipy.optimize import leastsq
+from scipy.signal import find_peaks, find_peaks_cwt
 
 """
 First parsing step. Concerned with the data files as a whole. -- FOR RAW FILES
@@ -99,6 +100,44 @@ class TrapDataRaw:
         ones = list(np.ones(len(total_objs_per_time_num)))
 
         fig.add_trace(go.Scatter(x=time_nums, y=sum_area_per_time_num, mode="lines+markers"))
+        fig.add_trace(go.Scatter(x=time_nums, y=ones, text=total_objs_per_time_num, mode="text"))
+
+        fig.show()
+
+    def plot_single_trap_df_peak(self, trap_num, t_stop=None):
+
+        print("Plot Single Trap - Hardcoded Atm")
+
+        df = self.get_single_trap_df(trap_num, t_stop)
+
+        fig = go.Figure()
+
+        fig.layout.title["text"] = "TrapNum:{} TStop:{} SumArea/TimeNum PeakFind".format(trap_num, t_stop)
+
+        total_objs_per_time_num = []
+        time_nums = []
+        sum_area_per_time_num = []
+
+        for t in df["time_num"].unique():
+
+            time_df = df.query("time_num == {}".format(t))
+
+            total_obj = time_df["total_objs"].unique()[0]
+            sum_area = sum(time_df["area"])
+
+            total_objs_per_time_num.append(total_obj)
+            sum_area_per_time_num.append(sum_area)
+            time_nums.append(t)
+
+        peaks = find_peaks(sum_area_per_time_num, distance=5)
+        peaks = list(peaks)[0]
+        peak_y = [sum_area_per_time_num[i] if i in peaks else 0.0 for i in range(len(sum_area_per_time_num))]
+
+
+        ones = list(np.ones(len(total_objs_per_time_num)))
+
+        fig.add_trace(go.Scatter(x=time_nums, y=sum_area_per_time_num, mode="lines+markers"))
+        fig.add_trace(go.Scatter(x=time_nums, y=peak_y, mode="markers"))
         fig.add_trace(go.Scatter(x=time_nums, y=ones, text=total_objs_per_time_num, mode="text"))
 
         fig.show()

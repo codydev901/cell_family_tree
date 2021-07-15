@@ -2,6 +2,7 @@ from parse.trap_data import TrapData
 from parse.trap_graph import TrapGraph
 from parse.trap_data_raw import TrapDataRaw
 from parse.trap_graph_raw import TrapGraphRaw
+from parse.trap_graph_peak import TrapGraphPeak
 from parse.helpers import parse_experimental_results
 
 """
@@ -60,19 +61,22 @@ def trap_data_raw_tests():
     # BC8_yolo_v1.csv
     # BC8_mrcnn_v1.csv
 
-    a = TrapDataRaw("BC8_mrcnn_v1.csv")
-    a.plot_single_trap_df(trap_num=1, t_stop=None)
+    a = TrapDataRaw("BC8_yolo_v1.csv")
+    a.plot_single_trap_df_peak(trap_num=97, t_stop=None)
 
 
 def trap_data_raw_graph_tests():
 
-    file_name = "BC8_mrcnn_v1.csv"
+    file_name = "BC8_yolo_v1.csv"
 
-    a = TrapDataRaw("BC8_mrcnn_v1.csv")
-    b = a.get_single_trap_df(trap_num=1, t_stop=None)
-    c = TrapGraphRaw(df=b, file_name=file_name)
+    a = TrapDataRaw(file_name)
+    b = a.get_single_trap_df(trap_num=59, t_stop=None)
+    # c = TrapGraphRaw(df=b, file_name=file_name)
+    c = TrapGraphPeak(df=b, file_name=file_name)
 
-    print("AHH")
+    # c.plot_rls_results()
+    c.plot_peaks()
+
 
 if __name__ == "__main__":
 
