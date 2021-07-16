@@ -57,8 +57,18 @@ class TrapGraphPeak:
         self.peaks = list(self.peaks)[0]
 
     def _determine_stop_time_num(self):
+        """
+        Check Images/Experimental
+
+
+        Trap 92
+        Trap 59
+        """
 
         print(self.peaks)
+
+        since_last_division = 0
+
         for i, sum_area in enumerate(self.time_sum_area):
 
             time_num = self.time_num[i]
@@ -85,11 +95,28 @@ class TrapGraphPeak:
                 break
 
             # Next X Cells Little Area Change
-            if np.std(self.time_sum_area[i:i + 5]) <= 5.0 and self.num_divisions >= 2:
+            if np.std(self.time_sum_area[i:i + 7]) <= 4.5 and self.num_divisions >= 2:
                 self.stop_condition = "No Divisions - Area STD"
                 self.t_stop = time_num
                 print("Break No Divisions - Area STD", time_num, self.num_divisions)
                 break
+
+            # Large ObjCount Drop Followed By ObjCount Noise
+            if self.time_num_obj[i] >= 6 and self.time_num_obj[i+1] <= 2:
+                next_obj_counts = list(set(self.time_num_obj[i+1:i+21]))
+                if len(next_obj_counts) > 2:
+                    print(next_obj_counts)
+                    self.stop_condition = "Large Obj Count Drop + Noise"
+                    self.t_stop = time_num
+                    print("Large Obj Count Drop + Noise", time_num, self.num_divisions)
+                    break
+
+            # # Massive Increase in Area
+            # if self.time_sum_area[i+1] - self.time_sum_area[i] >= 300:
+            #     self.stop_condition = "Area Increase"
+            #     self.t_stop = time_num
+            #     print("Break No Divisions - Area Increase", time_num, self.num_divisions)
+            #     break
 
             # # Sudden Drop in Area (TESTING)
             # if sum_area - self.time_sum_area[i+1] >= 125 and self.num_divisions >= 2:
@@ -97,6 +124,10 @@ class TrapGraphPeak:
             #     self.t_stop = time_num
             #     print("Break No Divisions - Area Drop", time_num, self.num_divisions)
             #     break
+
+            # Sudden Drop in Area Followed By Rise - TrapNum 46 Time 200
+            # Massive Increase In Area - TrapNum 39 Time 200
+            # 4 ObjCountDrop Post 200 - TrapNum 33 Time 391
 
     def plot_peaks(self):
 
