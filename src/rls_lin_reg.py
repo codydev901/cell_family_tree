@@ -8,17 +8,15 @@ Doc Doc Doc
 """
 
 
-def parse_results():
+def parse_results(rls_df):
 
-    # result_df = pd.read_csv("reports/FT_BC8_yolo_short_RLSAnalysis.csv")
-    # result_df = pd.read_csv("reports/BC8_yolo_v1_AreaRLS.csv")
-    result_df = pd.read_csv("reports/BC8_yolo_v1_PeakRLS.csv")
+    if type(rls_df) == str:
+        rls_df = pd.read_csv("reports/{}".format(rls_df))
 
-    trap_nums = result_df["trap_num"].tolist()
-    ground_truth = result_df["experimental"].tolist()
+    trap_nums = rls_df["trap_num"].tolist()
+    ground_truth = rls_df["exp_div"].tolist()
 
-    # branch_rls = result_df["root_branch_count"].tolist()
-    branch_rls = result_df["predicted"].tolist()
+    branch_rls = rls_df["pred_div"].tolist()
 
     # Associate RLS with trap num
     ground_truth = [[t, v] for t, v in zip(trap_nums, ground_truth)]
@@ -116,7 +114,7 @@ def plot_scatter(branch_rls, ground_truth, trap_index,
 
 def main():
 
-    branch_rls, ground_truth = parse_results()
+    branch_rls, ground_truth = parse_results("BC8_yolo_v1.csv_peak_rls.csv")
 
     trap_index = [[i, v[0]] for i, v in enumerate(branch_rls)]
 

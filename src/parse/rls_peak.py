@@ -1,22 +1,17 @@
-import pandas as pd
 import numpy as np
-import sys
-import os
-from scipy.signal import argrelextrema
-from scipy.signal import find_peaks, find_peaks_cwt
+from scipy.signal import find_peaks
 import plotly.graph_objs as go
-from .helpers import write_csv
+
 
 """
 Doc Doc Doc
 """
 
 
-class TrapGraphPeak:
+class RLSPeak:
 
-    def __init__(self, df, file_name=None):
+    def __init__(self, df):
         self.df = df
-        self.file_name = file_name
         self.trap_num = None
         self.t_stop = 0
         self.stop_condition = "Full"
@@ -65,18 +60,14 @@ class TrapGraphPeak:
         Trap 59
         """
 
-        print(self.peaks)
-
-        since_last_division = 0
-
         for i, sum_area in enumerate(self.time_sum_area):
 
             time_num = self.time_num[i]
             num_obj = self.time_num_obj[i]
 
             if i in self.peaks:
-                print("AT PEAK")
-                print(i, time_num, num_obj)
+                # print("AT PEAK")
+                # print(i, time_num, num_obj)
                 self.num_divisions += 1
                 self.index_div.append(i)
 
@@ -129,9 +120,22 @@ class TrapGraphPeak:
             # Massive Increase In Area - TrapNum 39 Time 200
             # 4 ObjCountDrop Post 200 - TrapNum 33 Time 391
 
-    def plot_peaks(self):
+    def results(self):
+        """
+        Doc Doc Doc
 
-        print("Plot Single Trap - Hardcoded Atm")
+        :return:
+        """
+
+        return {"t_stop": self.t_stop, "stop_condition": self.stop_condition,
+                "pred_div": self.num_divisions, "trap_num": self.trap_num}
+
+    def plot_peaks(self):
+        """
+        Doc Doc Doc
+
+        :return:
+        """
 
         fig = go.Figure()
 
@@ -148,5 +152,3 @@ class TrapGraphPeak:
         fig.add_trace(go.Scatter(x=self.time_num, y=ones, text=self.time_num_obj, mode="text"))
 
         fig.show()
-
-
