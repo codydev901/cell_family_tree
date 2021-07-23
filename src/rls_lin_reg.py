@@ -1,3 +1,4 @@
+import sys
 import plotly.graph_objects as go
 import pandas as pd
 import numpy as np
@@ -54,7 +55,9 @@ def parse_results(rls_df):
                 break
     branch_rls = branch_rls_temp
 
-    return branch_rls, ground_truth
+    residuals = [abs(v1[1] - v2[1]) for v1, v2 in zip(ground_truth, branch_rls)]
+
+    return branch_rls, ground_truth, residuals
 
 
 def lin_reg(x, y):
@@ -79,9 +82,9 @@ def plot_scatter(branch_rls, ground_truth, trap_index,
 
     fig = go.Figure()
     fig.update_layout(
-        title="Ground Truth vs Branch RLS",
+        title="Ground Truth vs SumArea RLS",
         xaxis_title="Trap Index (Sorted Least to Greatest by Ground Truth RLS)",
-        yaxis_title="RLS (Branch Count/Mother Cell Divisions)",
+        yaxis_title="RLS (Predicted Cell Divisions)",
         legend_title="Legend",
     )
 
@@ -114,7 +117,7 @@ def plot_scatter(branch_rls, ground_truth, trap_index,
 
 def main():
 
-    branch_rls, ground_truth = parse_results("BC8_yolo_v1.csv_peak_rls.csv")
+    branch_rls, ground_truth, residuals = parse_results("BC8_yolo_v1.csv_peak_rls.csv")
 
     trap_index = [[i, v[0]] for i, v in enumerate(branch_rls)]
 
@@ -125,6 +128,8 @@ def main():
     print(ground_reg)
     print("Branch RLS Regression Stats")
     print(branch_reg)
+    print("Sum Residuals")
+    print(sum(residuals))
 
     plot_scatter(branch_rls, ground_truth, trap_index, branch_reg, ground_reg)
 

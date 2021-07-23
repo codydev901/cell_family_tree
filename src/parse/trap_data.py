@@ -33,7 +33,7 @@ class TrapData:
             try:
                 res = int(res)
             except ValueError:
-                pass
+                continue
             exp_dict[trap_num] = res
 
         return exp_dict
@@ -62,11 +62,12 @@ class TrapData:
 
         return df
 
-    def get_rls_peak(self, trap_num: int):
+    def get_rls_peak(self, trap_num: int, get_rls_obj: bool = False):
         """
         Run's RLS calculations using sum_area and obj_count.
 
         :param trap_num: see data.csv/trap_num
+        :param get_rls_obj: for use in plotting/full results
         :return: dict containing RLS information for specified trap_num along with experimental count
         """
 
@@ -75,8 +76,14 @@ class TrapData:
         trap_df = self._get_trap_df(trap_num)
 
         rls = RLSPeak(trap_df)
+        if get_rls_obj:
+            return rls
+
         rls = rls.results()
-        rls.update({"exp_div": self.experimental_results[trap_num]})
+        try:
+            rls.update({"exp_div": self.experimental_results[trap_num]})
+        except KeyError:
+            return None
 
         return rls
 
@@ -94,7 +101,9 @@ class TrapData:
                 rls = self.get_rls_peak(v)
             except ValueError:
                 continue
-            res.append(rls)
+            # if rls is None, experimental results were not found. Will ignore it.
+            if rls:
+                res.append(rls)
 
         return res
 

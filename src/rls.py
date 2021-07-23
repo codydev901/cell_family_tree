@@ -20,8 +20,8 @@ def main():
     rls_res = trap_data.get_rls_peak_all()
 
     res_df = pd.DataFrame(rls_res)
-    res_df.reindex(columns=["trap_num", "t_stop", "stop_condition", "exp_div", "pred_div"])
-    res_df.to_csv("reports/{}_peak_rls.csv".format(file_name), index=False)
+    res_df.to_csv("reports/{}_peak_rls.csv".format(file_name), index=False,
+                  columns=["trap_num", "t_stop", "stop_condition", "start_obj", "exp_div", "pred_div"])
 
 
 if __name__ == "__main__":

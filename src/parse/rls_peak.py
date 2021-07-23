@@ -1,3 +1,4 @@
+import sys
 import numpy as np
 from scipy.signal import find_peaks
 import plotly.graph_objs as go
@@ -13,12 +14,14 @@ class RLSPeak:
     def __init__(self, df):
         self.df = df
         self.trap_num = None
+        self.start_num_obj = 0
         self.t_stop = 0
         self.stop_condition = "Full"
         self.time_num = []
         self.time_sum_area = []
         self.time_num_obj = []
         self.peaks = []
+        self.peak_areas = []
         self.num_divisions = 0
         self.index_div = []
         self._on_init()
@@ -28,11 +31,9 @@ class RLSPeak:
         Doc Doc Doc
         """
 
-        starting_num_objs = self.df.query("time_num == 1")["total_objs"].tolist()[0]
-        if starting_num_objs != 1:
-            raise ValueError("Multiple or No Objects at T1 - Not supported at the moment")
-
         self.trap_num = self.df["trap_num"].tolist()[0]
+
+        self.start_num_obj = self.df.query("time_num == 1")["total_objs"].tolist()[0]
 
         self.t_stop = self.df["time_num"].max()
         for t in self.df["time_num"].unique():
@@ -64,12 +65,16 @@ class RLSPeak:
 
             time_num = self.time_num[i]
             num_obj = self.time_num_obj[i]
+            avg_peak_area = 0
+            if self.peak_areas:
+                avg_peak_area = np.mean(self.peak_areas)
 
             if i in self.peaks:
                 # print("AT PEAK")
                 # print(i, time_num, num_obj)
                 self.num_divisions += 1
                 self.index_div.append(i)
+                self.peak_areas.append(self.time_sum_area[i])
 
             # No Cells Detected
             if num_obj == 0:
@@ -102,12 +107,12 @@ class RLSPeak:
                     print("Large Obj Count Drop + Noise", time_num, self.num_divisions)
                     break
 
-            # # Massive Increase in Area
-            # if self.time_sum_area[i+1] - self.time_sum_area[i] >= 300:
-            #     self.stop_condition = "Area Increase"
-            #     self.t_stop = time_num
-            #     print("Break No Divisions - Area Increase", time_num, self.num_divisions)
-            #     break
+            # Increase above Average Peak in Later Time Num
+            if (self.time_sum_area[i] > avg_peak_area * 1.25) and self.time_num[i] > 150 and (i not in self.peaks):
+                self.stop_condition = "Area Surpassed Avg Peak"
+                self.t_stop = time_num
+                print("Break No Divisions - AvgPeak Max Threshold", time_num, self.num_divisions)
+                break
 
             # # Sudden Drop in Area (TESTING)
             # if sum_area - self.time_sum_area[i+1] >= 125 and self.num_divisions >= 2:
@@ -128,7 +133,8 @@ class RLSPeak:
         """
 
         return {"t_stop": self.t_stop, "stop_condition": self.stop_condition,
-                "pred_div": self.num_divisions, "trap_num": self.trap_num}
+                "pred_div": self.num_divisions, "trap_num": self.trap_num,
+                "start_obj": self.start_num_obj}
 
     def plot_peaks(self):
         """
