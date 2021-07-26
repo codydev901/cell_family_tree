@@ -1,0 +1,102 @@
+trap_num,t_stop,stop_condition,start_obj,exp_div,pred_div
+1,151,Area Surpassed Avg Peak,1,21,22
+2,155,No Divisions - Area STD,1,18,19
+3,182,Area Surpassed Avg Peak,1,21,26
+4,183,Area Surpassed Avg Peak,3,33,25
+5,191,No Divisions - Num Obj 1,2,27,28
+6,277,No Divisions - Num Obj 1,2,6,37
+7,214,No Divisions - Num Obj 1,1,29,30
+8,214,Area Surpassed Avg Peak,1,24,31
+9,96,Large Obj Count Drop + Noise,3,8,14
+10,156,Area Surpassed Avg Peak,1,16,21
+11,276,Area Surpassed Avg Peak,3,33,37
+12,185,Area Surpassed Avg Peak,1,19,25
+13,146,No Divisions - Num Obj 1,2,25,20
+14,165,Area Surpassed Avg Peak,1,19,21
+15,151,Area Surpassed Avg Peak,1,23,20
+16,225,Area Surpassed Avg Peak,1,30,28
+17,245,Area Surpassed Avg Peak,1,31,31
+18,202,No Divisions - Area STD,1,22,26
+19,179,Area Surpassed Avg Peak,1,32,25
+20,194,Area Surpassed Avg Peak,1,24,26
+21,151,Area Surpassed Avg Peak,2,16,15
+22,56,Large Obj Count Drop + Noise,1,6,5
+23,137,No Cells,2,18,18
+24,148,No Divisions - Area STD,1,18,21
+25,291,Area Surpassed Avg Peak,3,20,40
+26,153,Area Surpassed Avg Peak,2,21,21
+27,182,Area Surpassed Avg Peak,2,27,24
+28,164,No Divisions - Area STD,4,15,19
+29,194,Area Surpassed Avg Peak,1,29,27
+30,100,No Divisions - Num Obj 1,2,13,13
+31,37,No Cells,1,3,5
+32,244,Area Surpassed Avg Peak,1,32,36
+33,169,Area Surpassed Avg Peak,1,30,20
+34,208,No Divisions - Area STD,2,20,31
+35,156,Area Surpassed Avg Peak,2,30,21
+36,38,No Divisions - Num Obj 1,2,20,5
+37,183,No Divisions - Num Obj 1,1,23,26
+38,274,No Divisions - Num Obj 1,1,46,35
+39,186,Area Surpassed Avg Peak,1,27,25
+40,89,No Divisions - Area STD,1,12,12
+41,98,No Divisions - Area STD,2,9,13
+42,60,No Divisions - Num Obj 1,2,8,8
+43,185,No Divisions - Num Obj 1,2,31,26
+44,1,No Cells,0,0,0
+45,161,No Divisions - Num Obj 1,2,17,23
+46,193,Area Surpassed Avg Peak,1,24,23
+47,139,No Cells,2,13,17
+48,219,No Divisions - Area STD,2,26,31
+49,221,No Divisions - Area STD,2,21,34
+50,155,Area Surpassed Avg Peak,2,15,20
+51,188,No Divisions - Num Obj 1,2,25,24
+52,254,No Divisions - Area STD,1,33,34
+53,209,Area Surpassed Avg Peak,1,31,27
+54,124,No Divisions - Area STD,1,20,17
+55,183,No Divisions - Num Obj 1,1,28,25
+56,93,No Cells,3,9,14
+57,118,No Cells,3,13,18
+58,152,Area Surpassed Avg Peak,3,20,17
+59,264,Area Surpassed Avg Peak,1,10,36
+60,39,No Divisions - Num Obj 1,1,4,5
+61,87,No Divisions - Area STD,1,10,12
+62,145,No Divisions - Num Obj 1,1,20,20
+63,132,No Divisions - Num Obj 1,2,17,17
+65,115,No Divisions - Area STD,1,15,14
+66,153,Area Surpassed Avg Peak,1,21,20
+67,220,Area Surpassed Avg Peak,1,29,28
+68,121,No Divisions - Num Obj 1,5,8,18
+69,124,No Divisions - Num Obj 1,2,18,16
+70,161,Area Surpassed Avg Peak,2,23,22
+71,235,Area Surpassed Avg Peak,2,31,31
+72,108,No Divisions - Area STD,1,15,14
+73,207,Area Surpassed Avg Peak,1,30,28
+74,94,No Divisions - Num Obj 1,1,9,11
+75,180,Area Surpassed Avg Peak,3,20,24
+76,186,Area Surpassed Avg Peak,2,26,26
+77,205,Area Surpassed Avg Peak,2,28,28
+78,178,Area Surpassed Avg Peak,1,25,25
+79,151,Area Surpassed Avg Peak,1,16,20
+80,188,Area Surpassed Avg Peak,1,20,26
+82,1,No Cells,0,0,0
+83,202,Area Surpassed Avg Peak,2,29,26
+84,119,No Divisions - Area STD,1,15,17
+85,163,Area Surpassed Avg Peak,1,23,22
+86,142,No Divisions - Num Obj 1,1,18,19
+87,87,No Divisions - Num Obj 1,1,11,12
+88,43,No Cells,2,6,5
+89,165,No Divisions - Num Obj 1,1,19,20
+90,220,No Divisions - Num Obj 1,1,30,31
+91,163,No Divisions - Num Obj 1,1,24,22
+92,239,Area Surpassed Avg Peak,1,7,36
+94,163,Area Surpassed Avg Peak,2,23,23
+95,200,Area Surpassed Avg Peak,2,27,27
+96,62,No Cells,1,4,7
+97,160,No Divisions - Area STD,1,12,20
+98,157,No Cells,1,20,21
+99,102,No Divisions - Area STD,1,12,16
+100,233,No Divisions - Area STD,2,23,29
+101,157,Area Surpassed Avg Peak,2,20,22
+102,186,Area Surpassed Avg Peak,1,23,21
+103,231,No Divisions - Num Obj 1,2,3,28
+104,225,No Divisions - Area STD,1,18,31
