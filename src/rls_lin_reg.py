@@ -71,13 +71,16 @@ def lin_reg(x, y):
 
 
 def predict_lin_reg(reg_dict, trap_index):
-    x = [v[0] for v in trap_index]
+    try:
+        x = [v[0] for v in trap_index]
+    except TypeError:
+        x = trap_index
     y = [v * reg_dict["slope"] + reg_dict["intercept"] for v in x]
 
     return y
 
 
-def plot_scatter(branch_rls, ground_truth, trap_index,
+def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
                  branch_rls_reg, ground_truth_reg):
 
     fig = go.Figure()
@@ -100,6 +103,12 @@ def plot_scatter(branch_rls, ground_truth, trap_index,
                              name='experimental_branch',
                              text=["Trap: {}".format(v[1]) for v in trap_index]))
 
+    fig.add_trace(go.Scatter(x=[v[1] for v in ground_truth],
+                             y=[v[1] for v in branch_rls],
+                             mode='markers',
+                             name='combined',
+                             text=["Trap: {}".format(v[1]) for v in trap_index]))
+
     fig.add_trace(go.Scatter(x=[v[0] for v in trap_index],
                              y=predict_lin_reg(ground_truth_reg, trap_index),
                              mode='lines',
@@ -110,6 +119,12 @@ def plot_scatter(branch_rls, ground_truth, trap_index,
                              y=predict_lin_reg(branch_rls_reg, trap_index),
                              mode='lines',
                              name='experimental_branch_reg',
+                             text=["Trap: {}".format(v[1]) for v in trap_index]))
+
+    fig.add_trace(go.Scatter(x=[v[1] for v in ground_truth],
+                             y=predict_lin_reg(combined_reg, [v[1] for v in ground_truth]),
+                             mode='lines',
+                             name='combined_lin_reg',
                              text=["Trap: {}".format(v[1]) for v in trap_index]))
 
     fig.show()
@@ -123,15 +138,23 @@ def main():
 
     ground_reg = lin_reg(x=[v[0] for v in trap_index], y=[v[1] for v in ground_truth])
     branch_reg = lin_reg(x=[v[0] for v in trap_index], y=[v[1] for v in branch_rls])
+    ground_y = [v[1] for v in ground_truth]
+    branch_y = [v[1] for v in branch_rls]
 
-    print("Ground Truth Regression Stats")
-    print(ground_reg)
-    print("Branch RLS Regression Stats")
-    print(branch_reg)
+    print("Ground Truth")
+    print(ground_y)
+    print("Predicted")
+    print(branch_y)
+
+    combined_reg = lin_reg(x=ground_y, y=branch_y)
+
     print("Sum Residuals")
     print(sum(residuals))
+    print("Combined Regression Stats")
+    print(combined_reg)
+    print("R^2 = {}".format(combined_reg["r_value"]*combined_reg["r_value"]))
 
-    plot_scatter(branch_rls, ground_truth, trap_index, branch_reg, ground_reg)
+    plot_scatter(branch_rls, ground_truth, combined_reg, trap_index, branch_reg, ground_reg)
 
 
 
