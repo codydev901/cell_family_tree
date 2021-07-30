@@ -29,7 +29,7 @@ class TrapData:
         exp_dict = dict()
         for i, v in exp_df.iterrows():
             trap_num = v["trap"]
-            res = v["exp"].replace("l", "").replace("e", "0")
+            res = v["exp"].replace("e", "0")
             try:
                 res = int(res)
             except ValueError:
