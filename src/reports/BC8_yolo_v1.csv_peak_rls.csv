@@ -35,7 +35,6 @@ trap_num,t_stop,stop_condition,start_obj,exp_div,pred_div
 41,98,No Divisions - Area STD,2,9,13
 42,60,No Divisions - Num Obj 1,2,8,8
 43,185,No Divisions - Num Obj 1,2,31,26
-44,1,No Cells,0,0,0
 45,161,No Divisions - Num Obj 1,2,17,23
 47,139,No Cells,2,13,17
 48,219,No Divisions - Area STD,2,26,31
@@ -60,7 +59,6 @@ trap_num,t_stop,stop_condition,start_obj,exp_div,pred_div
 71,235,Area Surpassed Avg Peak,2,31,31
 72,108,No Divisions - Area STD,1,15,14
 77,205,Area Surpassed Avg Peak,2,28,28
-82,1,No Cells,0,0,0
 83,202,Area Surpassed Avg Peak,2,29,26
 84,119,No Divisions - Area STD,1,15,17
 86,142,No Divisions - Num Obj 1,1,18,19

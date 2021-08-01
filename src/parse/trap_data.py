@@ -1,6 +1,8 @@
 import os
 import sys
 import pandas as pd
+import numpy as np
+
 
 from .rls_peak import RLSPeak
 
@@ -29,7 +31,7 @@ class TrapData:
         exp_dict = dict()
         for i, v in exp_df.iterrows():
             trap_num = v["trap"]
-            res = v["exp"].replace("e", "0")
+            res = v["exp"]
             try:
                 res = int(res)
             except ValueError:
