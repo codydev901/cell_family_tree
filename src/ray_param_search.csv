@@ -1,0 +1,5 @@
+sum_residual,peak_distance,next_cells_1_obj_range,next_cells_1_obj_count,num_divisions_threshold,std_change_range,std_change_threshold,obj_drop_current,obj_drop_next,obj_drop_noise_range,obj_drop_noise_threshold,avg_peak_constant,avg_peak_time_threshold
+256,5,5,5,2,7,4.5,6,2,21,2,1.25,150
+376,4,5,5,2,7,4.5,6,2,21,2,1.25,150
+251,6,5,5,2,7,4.5,6,2,21,2,1.25,150
+237,6,5,5,5,7,4.5,6,2,21,2,1.25,150

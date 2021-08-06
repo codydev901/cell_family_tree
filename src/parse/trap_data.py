@@ -5,6 +5,7 @@ import numpy as np
 
 
 from .rls_peak import RLSPeak
+from .rls_params import RLSParams
 
 """
 Doc Doc Doc
@@ -64,12 +65,13 @@ class TrapData:
 
         return df
 
-    def get_rls_peak(self, trap_num: int, get_rls_obj: bool = False):
+    def get_rls_peak(self, trap_num: int, params: RLSParams, get_rls_obj: bool = False):
         """
         Run's RLS calculations using sum_area and obj_count.
 
         :param trap_num: see data.csv/trap_num
         :param get_rls_obj: for use in plotting/full results
+        :param params:
         :return: dict containing RLS information for specified trap_num along with experimental count
         """
 
@@ -77,7 +79,7 @@ class TrapData:
 
         trap_df = self._get_trap_df(trap_num)
 
-        rls = RLSPeak(trap_df)
+        rls = RLSPeak(trap_df, params=params)
         if get_rls_obj:
             return rls
 
@@ -89,7 +91,7 @@ class TrapData:
 
         return rls
 
-    def get_rls_peak_all(self):
+    def get_rls_peak_all(self, params: RLSParams, as_sum_res=False):
         """
         Doc Doc Doc
 
@@ -97,15 +99,21 @@ class TrapData:
         """
 
         res = []
+        sum_res = []
 
         for v in self.traps:
             try:
-                rls = self.get_rls_peak(v)
+                rls = self.get_rls_peak(v, params, get_rls_obj=False)
             except ValueError:
                 continue
             # if rls is None, experimental results were not found. Will ignore it.
             if rls:
                 res.append(rls)
+                residuals = abs(rls["exp_div"] - rls["pred_div"])
+                sum_res.append(residuals)
+
+        if as_sum_res:
+            return [[sum(sum_res)] + params.to_param_list()]
 
         return res
 

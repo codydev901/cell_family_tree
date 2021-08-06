@@ -11,8 +11,9 @@ Doc Doc Doc
 
 class RLSPeak:
 
-    def __init__(self, df):
+    def __init__(self, df, params):
         self.df = df
+        self.params = params
         self.trap_num = None
         self.start_num_obj = 0
         self.t_stop = 0
@@ -49,7 +50,7 @@ class RLSPeak:
 
     def _find_peaks(self):
 
-        self.peaks = find_peaks(self.time_sum_area, distance=5)
+        self.peaks = find_peaks(self.time_sum_area, distance=self.params.peak_distance)
         self.peaks = list(self.peaks)[0]
 
     def _determine_stop_time_num(self):
@@ -84,23 +85,23 @@ class RLSPeak:
                 break
 
             # Next X Cells 1 Obj
-            if self.time_num_obj[i:i + 5].count(1) == 5 and self.num_divisions >= 2:
+            if self.time_num_obj[i:i + self.params.next_cells_1_obj_range].count(1) == self.params.next_cells_1_obj_count and self.num_divisions >= self.params.num_divisions_threshold:
                 self.stop_condition = "No Divisions - Num Obj 1"
                 self.t_stop = time_num
                 print("Break No Divisions - Num Obj 1", time_num, self.num_divisions)
                 break
 
             # Next X Cells Little Area Change
-            if np.std(self.time_sum_area[i:i + 7]) <= 4.5 and self.num_divisions >= 2:
+            if np.std(self.time_sum_area[i:i + self.params.std_change_range]) <= self.params.std_change_threshold and self.num_divisions >= self.params.num_divisions_threshold:
                 self.stop_condition = "No Divisions - Area STD"
                 self.t_stop = time_num
                 print("Break No Divisions - Area STD", time_num, self.num_divisions)
                 break
 
             # Large ObjCount Drop Followed By ObjCount Noise
-            if self.time_num_obj[i] >= 6 and self.time_num_obj[i+1] <= 2:
-                next_obj_counts = list(set(self.time_num_obj[i+1:i+21]))
-                if len(next_obj_counts) > 2:
+            if self.time_num_obj[i] >= self.params.obj_drop_current and self.time_num_obj[i+1] <= self.params.obj_drop_next:
+                next_obj_counts = list(set(self.time_num_obj[i+1:i+self.params.obj_drop_noise_range]))
+                if len(next_obj_counts) > self.params.obj_drop_noise_threshold:
                     print(next_obj_counts)
                     self.stop_condition = "Large Obj Count Drop + Noise"
                     self.t_stop = time_num
@@ -108,7 +109,7 @@ class RLSPeak:
                     break
 
             # Increase above Average Peak in Later Time Num
-            if (self.time_sum_area[i] > avg_peak_area * 1.25) and self.time_num[i] > 150 and (i not in self.peaks):
+            if (self.time_sum_area[i] > avg_peak_area * self.params.avg_peak_constant) and self.time_num[i] > self.params.avg_peak_time_threshold and (i not in self.peaks):
                 self.stop_condition = "Area Surpassed Avg Peak"
                 self.t_stop = time_num
                 print("Break No Divisions - AvgPeak Max Threshold", time_num, self.num_divisions)
