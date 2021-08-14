@@ -33,6 +33,7 @@ class RLSParams:
         self.avg_peak_constant = avg_peak_constant
         self.avg_peak_time_threshold = avg_peak_time_threshold
 
+    # Do this correctly TODO
     def to_param_list(self):
 
         return [self.peak_distance, self.next_cells_1_obj_range, self.next_cells_1_obj_count,

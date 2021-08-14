@@ -6,6 +6,12 @@ import plotly.graph_objs as go
 
 """
 Doc Doc Doc
+
+notes 8/13
+
+Notes fit sin wave
+missing event in time lapse micro/frames
+
 """
 
 

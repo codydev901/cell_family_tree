@@ -1,0 +1,128 @@
+import sys
+import math
+import csv
+import pandas as pd
+
+"""
+Doc Doc Doc
+"""
+
+
+class PredIDAssignment:
+
+    def __init__(self, file_name):
+        self.file_name = file_name
+        self.df = pd.read_csv("data/{}".format(self.file_name))
+        self.traps = list(self.df["trap_num"].unique())
+        self.params = {"mdt": 5.0}
+
+    def assign_pred_ids(self, trap_num):
+        """
+        Assumptions
+
+        The starting cell is the mother cell. Ideally there is one starting cell.
+        Starting position of mother cell obtained at time_num 1.
+        Daughter cells will form at either above or below the mother cell. Most variation expected in Y.
+        Only a single daughter cell will be active at a time.
+        Any additional cells that appear while a division is in process or not above/below the mother cell are ignored.
+        Loss of mother cell leads to all future cells being ignored.
+        Mother Cell is predID 1
+        Daughter Cells are predID 2->X. New predIDs assigned to new daughter cells.
+        Ignore Cells are predID 0 - No reason to track them.
+        """
+
+        start_num_obj = self.df.query("time_num == 1 & trap_num == {}".format(trap_num))["total_objs"].tolist()[0]
+
+        print("Assign PredID TrapNum:{} StartNumObj:{}".format(trap_num, start_num_obj))
+
+        if start_num_obj != 1:
+            raise ValueError("Only Supporting Single Obj Atm")
+
+        parsed_data = [["trap_num", "time_num", "total_objs", "obj_num", "obj_x", "obj_y", "pred_id"]]
+
+        mother_x = 0.0
+        mother_y = 0.0
+        daughter_x = 0
+        daughter_y = 0
+        is_dividing = False
+        lost_mother = False
+        next_daughter_id = 2
+
+        last_step_mother_distance = 0.0
+        last_step_daughter_distance = 0.0
+
+        # Clean this up..
+        time_df = self.df.query("time_num == 1 & trap_num == {}".format(trap_num))
+        for i, row in time_df.iterrows():
+            mother_x = row["obj_X"]
+            mother_y = row["obj_Y"]
+
+        for t in self.df["time_num"].unique():
+            time_df = self.df.query("time_num == {} & trap_num == {}".format(t, trap_num))
+            found_mother = False
+            closest_distance_mother = 100.0
+
+            # First Try to Identify Mother Cell (Done first on purpose/two iteration steps)
+            for i, row in time_df.iterrows():
+                obj_x = row["obj_X"]
+                obj_y = row["obj_Y"]
+
+                # Each row is an obj (cell) at this trap & time_num. We have the starting mother cell coordinates.
+                # We calculate distance to mother cell
+                dis = math.hypot(obj_x - mother_x, obj_y - mother_y)
+                if dis <= closest_distance_mother:
+                    closest_distance_mother = dis
+
+                # If Distance to Mother Cell < MDT. New Mother Cell Coordinates assigned.
+                if dis <= self.params["mdt"] and not lost_mother:
+                    mother_x = obj_x
+                    mother_y = obj_y
+                    found_mother = True
+                    break
+
+            # Log If Not Found
+            if not found_mother:
+                lost_mother = True
+                print("Lost Mother: Trap_Num:{} Time_Num:{} Closest Distance:{}".format(trap_num, t, closest_distance_mother))
+
+            # Now Re-iterate to assign IDs
+            for i, row in time_df.iterrows():
+                trap_num = row["trap_num"]
+                time_num = row["time_num"]
+                total_objs = row["total_objs"]
+                obj_num = row["obj_num"]
+                obj_x = row["obj_X"]
+                obj_y = row["obj_Y"]
+                pred_id = 0
+
+                # Each row is an obj (cell) at this trap & time_num. We have the starting mother cell coordinates.
+                # We calculate distance to mother cell
+                dis = math.hypot(obj_x - mother_x, obj_y - mother_y)
+                if dis <= closest_distance_mother:
+                    closest_distance_mother = dis
+
+                # If Distance to Mother Cell < MDT. New Mother Cell Coordinates (So next step compares to this one)
+                if (obj_x == mother_x) and (obj_y == mother_y) and not lost_mother:
+                    pred_id = 1
+                    mother_x = obj_x
+                    mother_y = obj_y
+                    parsed_data.append([trap_num, time_num, total_objs, obj_num, obj_x, obj_y, pred_id])
+                    continue
+
+                # If Not Dividing And Distance to Mother Cell within Daughter Cell Range
+                print("Not Mother")
+                print("X/Y Distance: ", abs(obj_x - mother_x), abs(obj_y - mother_y), t)
+                parsed_data.append([trap_num, time_num, total_objs, obj_num, obj_x, obj_y, pred_id])
+
+        f_name = self.file_name.replace(".csv", "_") + str(trap_num) + "_" + "NewPredID.csv"
+
+        with open("new_pred_id_data/{}".format(f_name), "w") as w_file:
+            writer = csv.writer(w_file, delimiter=",")
+            for row in parsed_data:
+                writer.writerow(row)
+
+
+
+
+
+
