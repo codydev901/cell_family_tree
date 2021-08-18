@@ -1,4 +1,5 @@
 import sys
+import time
 import math
 import csv
 import pandas as pd
@@ -59,10 +60,10 @@ class PredIDAssignment:
 
         for t in self.df["time_num"].unique():
             time_df = self.df.query("time_num == {} & trap_num == {}".format(t, trap_num))
-            found_mother = False
-            closest_distance_mother = 100.0
+            # found_mother = False
 
             # First Try to Identify Mother Cell (Done first on purpose/two iteration steps)
+            mother_cell_distances = []
             for i, row in time_df.iterrows():
                 obj_x = row["obj_X"]
                 obj_y = row["obj_Y"]
@@ -70,20 +71,20 @@ class PredIDAssignment:
                 # Each row is an obj (cell) at this trap & time_num. We have the starting mother cell coordinates.
                 # We calculate distance to mother cell
                 dis = math.hypot(obj_x - mother_x, obj_y - mother_y)
-                if dis <= closest_distance_mother:
-                    closest_distance_mother = dis
+                mother_cell_distances.append([dis, obj_x, obj_y])
 
-                # If Distance to Mother Cell < MDT. New Mother Cell Coordinates assigned.
-                if dis <= self.params["mdt"] and not lost_mother:
-                    mother_x = obj_x
-                    mother_y = obj_y
-                    found_mother = True
-                    break
+            mother_cell_distances.sort(key=lambda x: x[0])
+            closest_cell = mother_cell_distances[0]
+            mother_x = closest_cell[1]
+            mother_y = closest_cell[2]
+
+            print("Mother Distance: ", t, closest_cell[0])
 
             # Log If Not Found
-            if not found_mother:
-                lost_mother = True
-                print("Lost Mother: Trap_Num:{} Time_Num:{} Closest Distance:{}".format(trap_num, t, closest_distance_mother))
+            # if not found_mother:
+            #     lost_mother = True
+            #     print("Lost Mother: Trap_Num:{} Time_Num:{} Closest Distance:{}".format(trap_num, t, closest_distance_mother))
+            #     time.sleep(10)
 
             # Now Re-iterate to assign IDs
             for i, row in time_df.iterrows():
@@ -98,11 +99,11 @@ class PredIDAssignment:
                 # Each row is an obj (cell) at this trap & time_num. We have the starting mother cell coordinates.
                 # We calculate distance to mother cell
                 dis = math.hypot(obj_x - mother_x, obj_y - mother_y)
-                if dis <= closest_distance_mother:
-                    closest_distance_mother = dis
+                # if dis <= closest_distance_mother:
+                #     closest_distance_mother = dis
 
                 # If Distance to Mother Cell < MDT. New Mother Cell Coordinates (So next step compares to this one)
-                if (obj_x == mother_x) and (obj_y == mother_y) and not lost_mother:
+                if obj_x == mother_x and obj_y == mother_y:
                     pred_id = 1
                     mother_x = obj_x
                     mother_y = obj_y
@@ -110,8 +111,8 @@ class PredIDAssignment:
                     continue
 
                 # If Not Dividing And Distance to Mother Cell within Daughter Cell Range
-                print("Not Mother")
-                print("X/Y Distance: ", abs(obj_x - mother_x), abs(obj_y - mother_y), t)
+                # print("Not Mother")
+                # print("X/Y Distance: ", abs(obj_x - mother_x), abs(obj_y - mother_y), t)
                 parsed_data.append([trap_num, time_num, total_objs, obj_num, obj_x, obj_y, pred_id])
 
         f_name = self.file_name.replace(".csv", "_") + str(trap_num) + "_" + "NewPredID.csv"

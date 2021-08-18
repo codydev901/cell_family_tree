@@ -3,7 +3,7 @@ import sys
 import pandas as pd
 import numpy as np
 
-
+from .rls_pred_id import RLSPredID
 from .rls_peak import RLSPeak
 from .rls_params import RLSParams
 
@@ -80,6 +80,32 @@ class TrapData:
         trap_df = self._get_trap_df(trap_num)
 
         rls = RLSPeak(trap_df, params=params)
+        if get_rls_obj:
+            return rls
+
+        rls = rls.results()
+        try:
+            rls.update({"exp_div": self.experimental_results[trap_num]})
+        except KeyError:
+            return None
+
+        return rls
+
+    def get_rls_pred_id(self, trap_num: int, params: RLSParams, get_rls_obj: bool = False):
+        """
+        Run's RLS calculations using sum_area and obj_count.
+
+        :param trap_num: see data.csv/trap_num
+        :param get_rls_obj: for use in plotting/full results
+        :param params:
+        :return: dict containing RLS information for specified trap_num along with experimental count
+        """
+
+        assert trap_num in self.traps, "invalid trap_num:{}".format(trap_num)
+
+        trap_df = self._get_trap_df(trap_num)
+
+        rls = RLSPredID(trap_df, params=params)
         if get_rls_obj:
             return rls
 
