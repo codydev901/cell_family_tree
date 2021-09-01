@@ -1,4 +1,5 @@
 import sys
+import pandas as pd
 import numpy as np
 from scipy.signal import find_peaks
 import plotly.graph_objs as go
@@ -142,6 +143,22 @@ class RLSPeak:
         return {"t_stop": self.t_stop, "stop_condition": self.stop_condition,
                 "pred_div": self.num_divisions, "trap_num": self.trap_num,
                 "start_obj": self.start_num_obj}
+
+    def write_stat_csv(self):
+
+        sum_area = self.time_sum_area
+        num_obj = self.time_num_obj
+        time_interval = self.time_num
+        peak_all = [self.time_sum_area[i] if i in self.peaks else 0.0 for i in range(len(self.time_sum_area))]
+        peak_stop = [self.time_sum_area[i] if i in self.index_div else 0.0 for i in range(len(self.time_sum_area))]
+
+        temp_df = pd.DataFrame({"sum_area": sum_area,
+                                "num_obj": num_obj,
+                                "time_num": time_interval,
+                                "peak_all": peak_all,
+                                "peak_stop": peak_stop})
+
+        temp_df.to_csv("trap_{}_stats.csv".format(self.trap_num), index=False)
 
     def plot_peaks(self):
         """
