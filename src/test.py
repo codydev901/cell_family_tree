@@ -26,6 +26,8 @@ def main():
     print(rls_res.num_divisions)
     rls_res.plot_peaks()
 
+    rls_res.write_stat_csv()
+
 
 if __name__ == "__main__":
 

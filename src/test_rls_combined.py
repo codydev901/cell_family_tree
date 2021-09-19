@@ -3,7 +3,6 @@ import pandas as pd
 import os
 
 from parse.trap_data import TrapData
-from parse.rls_params import RLSParams
 
 
 """
@@ -21,12 +20,14 @@ def main():
     file_name = "BC8_yolo_v1.csv"
 
     trap_data = TrapData(file_name)
-    rls_res = trap_data.get_rls_pred_id(trap_num=int(trap_num), params=RLSParams(), get_rls_obj=True)
+    rls_res = trap_data.get_rls_combined(trap_num=int(trap_num), get_rls_obj=True)
 
-    print("Peak Div", rls_res.num_divisions)
-    print("Trough Div", rls_res.num_divisions_trough)
-    print(rls_res.time_sum_area_descriptive)
-    rls_res.plot_peaks()
+    if rls_res:
+        rls_res.plot_sum_area_signal()
+        print(rls_res.exp_count)
+    else:
+        print("Unsupported Exp Res")
+
 
 
 if __name__ == "__main__":

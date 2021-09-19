@@ -1,8 +1,11 @@
 import sys
-import time
 import math
 import csv
+import numpy as np
+from scipy.signal import find_peaks
+import plotly.graph_objs as go
 import pandas as pd
+import plotly.express as px
 
 """
 Doc Doc Doc
@@ -78,7 +81,12 @@ class PredIDAssignment:
             mother_x = closest_cell[1]
             mother_y = closest_cell[2]
 
-            print("Mother Distance: ", t, closest_cell[0])
+            if closest_cell[0] > 2:
+                print("Mother Distance: ", t, closest_cell[0])
+                print(mother_cell_distances)
+                print("\n")
+
+            # sys.exit()
 
             # Log If Not Found
             # if not found_mother:
@@ -121,6 +129,45 @@ class PredIDAssignment:
             writer = csv.writer(w_file, delimiter=",")
             for row in parsed_data:
                 writer.writerow(row)
+
+    def plot_trap_x_y(self, trap_num):
+
+        cell_coordinates = []
+
+        for t in self.df["time_num"].unique():
+            time_df = self.df.query("time_num == {} & trap_num == {}".format(t, trap_num))
+
+            cell_c_temp = []
+            for i, row in time_df.iterrows():
+                cell_c_temp.append({"x": row["obj_X"],
+                                    "y": row["obj_Y"],
+                                    "area": row["area"],
+                                    "time": row["time_num"]})
+            cell_c_temp.sort(key=lambda x: x["area"], reverse=True)
+            for v in cell_c_temp:
+                cell_coordinates.append(v)
+
+        df = pd.DataFrame(cell_coordinates)
+
+        print(df.head)
+
+        fig = px.scatter(df, x="x", y="y", color="area", title="Trap:{} X/Y Over Time".format(trap_num),
+                         animation_frame="time", range_x=[0, 60], range_y=[0, 60], size="area",
+                         color_continuous_scale=[(0, "cyan"), (1, "red")])
+
+        fig.show()
+
+
+        # fig = go.Figure()
+        #
+        # fig.layout.title["text"] = "TrapNum:{} Cell X/Y".format(trap_num)
+        #
+        # for i, c_c in enumerate(cell_coordinates):
+        #     fig.add_trace(go.Scatter(x=[v[0] for v in c_c], y=[v[1] for v in c_c], mode="markers", name="t_{}".format(i+1)))
+        #
+        # fig.show()
+
+
 
 
 
