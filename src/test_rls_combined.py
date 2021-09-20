@@ -23,7 +23,8 @@ def main():
     rls_res = trap_data.get_rls_combined(trap_num=int(trap_num), get_rls_obj=True)
 
     if rls_res:
-        rls_res.plot_sum_area_signal()
+        # rls_res.plot_sum_area_signal()
+        rls_res.plot_animation_x_y()
         print(rls_res.exp_count)
     else:
         print("Unsupported Exp Res")

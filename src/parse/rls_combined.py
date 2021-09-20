@@ -4,6 +4,7 @@ import numpy as np
 from scipy.signal import find_peaks
 import plotly.graph_objs as go
 import pandas as pd
+import plotly.express as px
 pd.options.mode.chained_assignment = None  # default='warn'
 
 """
@@ -11,8 +12,15 @@ Use's Sum Area Curve + Obj Coordinates and Area To Construct A Simple Tree and C
 
 
 Logic
-1. Find and Assign Mother Cell Lineage. Mother cell assumed to be present at time_num 0. Determine when/if Mother cell
-is lost due to physical factors.
+1. Calculate SumAreaSignal. Sum of all cell area's at each time_num. We will reference this later on when looking for
+"missed" cell divisions.
+2. Find and Assign Mother Cell Lineage. Mother cell assumed to be present at time_num 0. If single cell at time_num 1,
+then that single cell is set automatically as mother cell. If multiple cells, cost function runs for each starting cell
+to assign a continuation sequence out to 150 nodes. The starting cell with the lowest sum cost of this calculation is 
+then set as mother cell. Assumes that mother cell will stay more consistent in both location and size in relation 
+to daughter and debris cells. By assigning mother cell lineage at start, we simplify the search for daughters. The full
+mother cell calculation runs for entire trap. We limit the starting search to first 150 since there seemed to be a higher
+likely-hood of things getting messy after that point than before it.
 
 
 
@@ -87,13 +95,13 @@ class RLSCombined:
 
     def _find_peaks(self):
 
-        self.peaks = find_peaks(self.time_sum_area, distance=5)
+        self.peaks = find_peaks(self.time_sum_area, distance=2)
         self.peaks = list(self.peaks)[0]
 
     def _find_troughs(self):
 
         inverted_area = [v*-1 for v in self.time_sum_area]
-        self.troughs = find_peaks(inverted_area, distance=5)
+        self.troughs = find_peaks(inverted_area, distance=2)
         self.troughs = list(self.troughs)[0]
 
     def _calc_assign_cost(self, old_cell, new_cell):
@@ -102,21 +110,6 @@ class RLSCombined:
         area_change = abs(1 - new_cell["area"]/old_cell["area"])
 
         return xy_distance + area_change
-
-    def _link_cells(self, last_time_df, curr_time_df):
-        """
-        Doc Doc Doc
-        """
-
-        costs = []
-
-        for i1, old_cell in last_time_df.iterrows():
-            for i2, new_cell in curr_time_df.iterrows():
-                print(i1, i2)
-                cost = self._calc_assign_cost(old_cell, new_cell)
-                costs.append([i1, i2, cost])
-
-        return costs
 
     def _assign_mother_cell(self):
         """
@@ -149,8 +142,7 @@ class RLSCombined:
             return
 
         # In case of multiple starting objects, calculate costs for first X time_nums to find a main branch, then re-run
-        # after setting that cell as mother w/ same logic as above.
-
+        # after setting that cell as mother w/ same logic as above. - Could probably just combine both...
         start_time_df = self.df.query("time_num == 1")
         potential_mothers = []
 
@@ -208,16 +200,18 @@ class RLSCombined:
         Doc Doc Doc
         """
 
-        last_time_df = self.df.query("time_num == 1")
-        for time_num in self.time_num:
-            curr_time_df = self.df.query("time_num == {}".format(time_num))
-            cell_costs = self._link_cells(last_time_df, curr_time_df)
-            last_time_df = curr_time_df
+        return
 
-            print(time_num, cell_costs)
+        is_dividing = False
+        for t in self.df["time_num"].unique():
+            time_df = self.df.query("time_num == {}".format(t))
+            print(time_df)
+            mother_cell = time_df.query("is_mother_cell == 1").iloc[0]
+            print(mother_cell)
 
-            if time_num > 15:
-                sys.exit()
+
+        # print(self.df.head(100))
+
 
     def results(self):
         """
@@ -251,31 +245,45 @@ class RLSCombined:
 
         fig.show()
 
-    def plot_animation_x_y(self, trap_num):
+    def plot_animation_x_y(self):
         """
         Doc Doc Doc
         """
 
         cell_coordinates = []
 
+        print(self.df.head(10))
+
         for t in self.df["time_num"].unique():
-            time_df = self.df.query("time_num == {} & trap_num == {}".format(t, trap_num))
+            time_df = self.df.query("time_num == {}".format(t))
 
             cell_c_temp = []
+            has_daughter = False
             for i, row in time_df.iterrows():
+                if not row["is_mother_cell"]:
+                    has_daughter = True
                 cell_c_temp.append({"x": row["obj_X"],
                                     "y": row["obj_Y"],
                                     "area": row["area"],
-                                    "time": row["time_num"]})
+                                    "time": row["time_num"],
+                                    "mother_cell": row["is_mother_cell"],
+                                    "lcm": row["last_mother_cost"]})
             cell_c_temp.sort(key=lambda x: x["area"], reverse=True)
             for v in cell_c_temp:
                 cell_coordinates.append(v)
 
+            # Hack-fix for Plotly - Won't show other cells if single mother cell start
+            if not has_daughter:
+                cell_coordinates.append({"x": 0,
+                                         "y": 0,
+                                         "area": 0,
+                                         "time": t,
+                                         "mother_cell": False,
+                                         "lcm": 15.0})
+
         df = pd.DataFrame(cell_coordinates)
 
-        print(df.head)
-
-        fig = px.scatter(df, x="x", y="y", color="area", title="Trap:{} X/Y Over Time".format(trap_num),
+        fig = px.scatter(df, x="x", y="y", color="mother_cell", title="Trap:{} X/Y Over Time".format(self.trap_num),
                          animation_frame="time", range_x=[0, 60], range_y=[0, 60], size="area",
                          color_continuous_scale=[(0, "cyan"), (1, "red")])
 
