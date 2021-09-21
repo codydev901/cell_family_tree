@@ -34,6 +34,7 @@ class RLSCombined:
         self.exp_count = exp_count
         self.trap_num = None
         self.start_num_obj = 0
+        self.start_condition = None
         self.t_stop = 0
         self.mother_lost_t = 0
         self.time_num = []
@@ -95,13 +96,13 @@ class RLSCombined:
 
     def _find_peaks(self):
 
-        self.peaks = find_peaks(self.time_sum_area, distance=2)
+        self.peaks = find_peaks(self.time_sum_area, distance=4)
         self.peaks = list(self.peaks)[0]
 
     def _find_troughs(self):
 
         inverted_area = [v*-1 for v in self.time_sum_area]
-        self.troughs = find_peaks(inverted_area, distance=2)
+        self.troughs = find_peaks(inverted_area, distance=4)
         self.troughs = list(self.troughs)[0]
 
     def _calc_assign_cost(self, old_cell, new_cell):
@@ -119,7 +120,7 @@ class RLSCombined:
         # In case only 1 Object, Mother Cell assumed to be Object at TimeNum 1.
         if self.start_num_obj == 1:
 
-            mother_cell = self.df.loc[0]
+            mother_cell = self.df.loc[self.df.index[0]]
             mother_cell_costs = []
 
             for t in self.df["time_num"].unique():
@@ -195,23 +196,100 @@ class RLSCombined:
 
         return
 
+    def _check_potential_daughter(self, mother_cell, check_cell, t_num):
+        """
+        Doc Doc Doc
+        """
+
+        mother_x, mother_y, mother_area = mother_cell["obj_X"], mother_cell["obj_Y"], mother_cell["area"]
+        daughter_x, daughter_y, daughter_area = check_cell["obj_X"], check_cell["obj_Y"], check_cell["area"]
+
+        # Minimal Variation in X
+        if (abs(mother_x - daughter_x)) > 4:
+            return False
+
+        # Y distance around 10
+        if abs(mother_y - daughter_y) < 7 or abs(mother_y - daughter_y) > 13:
+            return False
+
+        return True
+
     def _run_rls(self):
         """
         Doc Doc Doc
         """
 
-        return
+        daughter_cell_time_num = []
 
         is_dividing = False
+        last_daughter = None
+        since_division = 0
+        last_cell_count = 0
         for t in self.df["time_num"].unique():
+            i = t-1
             time_df = self.df.query("time_num == {}".format(t))
-            print(time_df)
             mother_cell = time_df.query("is_mother_cell == 1").iloc[0]
-            print(mother_cell)
+            other_cells = time_df.query("is_mother_cell == 0")
+            found_daughter = False
+            did_divide = False
 
+            # Stop
+            # No Cells Detected
+            if len(time_df) == 0:
+                self.stop_condition = "No Cells"
+                self.t_stop = t
+                break
 
-        # print(self.df.head(100))
+            # Next X Cells 1 Obj
+            if self.time_num_obj[i:i + 5].count(1) == 5 and len(daughter_cell_time_num) >= 2:
+                self.stop_condition = "No Divisions - Num Obj 1"
+                self.t_stop = t
+                break
 
+            # Next X Cells Little Area Change
+            if np.std(self.time_sum_area[i:i + 5]) <= 4.5 and self.num_divisions >= 2:
+                self.stop_condition = "No Divisions - Area STD"
+                self.t_stop = t
+                break
+
+            # Check other cells for potential to be daughter cell
+            for i, other_cell in other_cells.iterrows():
+                is_daughter = self._check_potential_daughter(mother_cell, other_cell, t)
+                # If not currently dividing
+                if is_daughter and not is_dividing:
+                    since_division = 0
+                    daughter_cell_time_num.append(t)
+                    is_dividing = True
+                    did_divide = True
+                    last_daughter = other_cell
+                    found_daughter = True
+                    break
+                # If currently dividing
+                if is_daughter:
+                    daughter_distance = self._calc_assign_cost(last_daughter, other_cell)
+                    found_daughter = True
+                    break
+
+            if not found_daughter:
+                last_daughter = None
+                is_dividing = False
+                since_division += 1
+
+            # Check for missed division
+            if last_cell_count == len(time_df) and is_dividing and t-1 in self.troughs and not did_divide:
+                daughter_cell_time_num.append(t)
+
+            last_cell_count = len(time_df)
+
+            if since_division > 5:
+                print("No Divs")
+                break
+
+            # print(t, len(daughter_cell_time_num))
+
+        self.stop_condition = "No Condition"
+        self.num_divisions = len(daughter_cell_time_num)
+        print(daughter_cell_time_num)
 
     def results(self):
         """
@@ -251,8 +329,6 @@ class RLSCombined:
         """
 
         cell_coordinates = []
-
-        print(self.df.head(10))
 
         for t in self.df["time_num"].unique():
             time_df = self.df.query("time_num == {}".format(t))

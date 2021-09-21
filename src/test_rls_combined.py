@@ -23,9 +23,11 @@ def main():
     rls_res = trap_data.get_rls_combined(trap_num=int(trap_num), get_rls_obj=True)
 
     if rls_res:
-        # rls_res.plot_sum_area_signal()
-        rls_res.plot_animation_x_y()
+        rls_res.plot_sum_area_signal()
+        # rls_res.plot_animation_x_y()
+        print("OK")
         print(rls_res.exp_count)
+        print(rls_res.num_divisions)
     else:
         print("Unsupported Exp Res")
 
