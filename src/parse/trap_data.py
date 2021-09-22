@@ -131,7 +131,7 @@ class TrapData:
 
         for v in self.traps:
             try:
-                rls = self.get_rls_peak(v, params, get_rls_obj=False)
+                rls = self.get_rls_combined(v, get_rls_obj=False)
             except ValueError:
                 continue
             # if rls is None, experimental results were not found. Will ignore it.

@@ -20,7 +20,7 @@ def main():
     rls_res = trap_data.get_rls_peak_all(params=RLSParams())
 
     res_df = pd.DataFrame(rls_res)
-    res_df.to_csv("reports/{}_peak_rls.csv".format(file_name), index=False,
+    res_df.to_csv("reports/{}_combined_rls.csv".format(file_name), index=False,
                   columns=["trap_num", "t_stop", "stop_condition", "start_obj", "exp_div", "pred_div"])
 
 

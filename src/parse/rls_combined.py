@@ -58,9 +58,18 @@ class RLSCombined:
         self.start_num_obj = self.df.query("time_num == 1")["total_objs"].tolist()[0]
         self.t_stop = self.df["time_num"].max()
 
+        self.df["is_mother_cell"] = [False] * len(self.df)
+        self.df["is_daughter_cell"] = [False] * len(self.df)
+        self.df["last_mother_cost"] = [0.0] * len(self.df)
+
+        self._assign_mother_cell()
+        self._assign_daughter_cell()
+
+        self.df = self.df.loc[(self.df['is_mother_cell'] == 1) | (self.df["is_daughter_cell"] == 1)]
+
         for t in self.df["time_num"].unique():
             time_df = self.df.query("time_num == {}".format(t))
-            total_obj = time_df["total_objs"].unique()[0]
+            total_obj = len(time_df["area"])
             sum_area = sum(time_df["area"])
             self.time_num_obj.append(total_obj)
             self.time_sum_area.append(sum_area)
@@ -88,21 +97,17 @@ class RLSCombined:
 
             self.time_sum_area_descriptive.append(desc)
 
-        self.df["is_mother_cell"] = [False]*len(self.df)
-        self.df["last_mother_cost"] = [0.0]*len(self.df)
-
-        self._assign_mother_cell()
-        self._run_rls()
+        self._run_rls_two()
 
     def _find_peaks(self):
 
-        self.peaks = find_peaks(self.time_sum_area, distance=4)
+        self.peaks = find_peaks(self.time_sum_area, distance=5)
         self.peaks = list(self.peaks)[0]
 
     def _find_troughs(self):
 
         inverted_area = [v*-1 for v in self.time_sum_area]
-        self.troughs = find_peaks(inverted_area, distance=4)
+        self.troughs = find_peaks(inverted_area, distance=5)
         self.troughs = list(self.troughs)[0]
 
     def _calc_assign_cost(self, old_cell, new_cell):
@@ -155,8 +160,8 @@ class RLSCombined:
             for i2, t in enumerate(self.df["time_num"].unique()[:150]):
 
                 # Break if Area Reaches 0/No Cells
-                if self.time_sum_area[i2] == 0:
-                    break
+                # if self.time_sum_area[i2] == 0:
+                #     break
 
                 time_df = self.df.query("time_num == {}".format(t))
 
@@ -196,6 +201,29 @@ class RLSCombined:
 
         return
 
+    def _assign_daughter_cell(self):
+        """
+        Doc Doc Doc
+        """
+
+        for t in self.df["time_num"].unique():
+            time_df = self.df.query("time_num == {}".format(t))
+            mother_cell = time_df.query("is_mother_cell == 1").iloc[0]
+            other_cells = time_df.query("is_mother_cell == 0")
+
+            other_cell_costs = []
+
+            for i, other_cell in other_cells.iterrows():
+                is_daughter, is_daughter_cost = self._check_potential_daughter(mother_cell, other_cell, t)
+                if is_daughter:
+                    other_cell_costs.append([i, is_daughter_cost])
+
+            if other_cell_costs:
+                other_cell_costs.sort(key=lambda x: x[1])
+                self.df.at[other_cell_costs[0][0], "is_daughter_cell"] = True
+                # if is_daughter:
+                #     self.df.at[i, "is_daughter_cell"] = True
+
     def _check_potential_daughter(self, mother_cell, check_cell, t_num):
         """
         Doc Doc Doc
@@ -204,15 +232,54 @@ class RLSCombined:
         mother_x, mother_y, mother_area = mother_cell["obj_X"], mother_cell["obj_Y"], mother_cell["area"]
         daughter_x, daughter_y, daughter_area = check_cell["obj_X"], check_cell["obj_Y"], check_cell["area"]
 
+        d_x = abs(mother_x - daughter_x)
         # Minimal Variation in X
         if (abs(mother_x - daughter_x)) > 4:
-            return False
+            return False, None
 
+        d_y = abs(10 - abs(mother_y - daughter_y))
         # Y distance around 10
-        if abs(mother_y - daughter_y) < 7 or abs(mother_y - daughter_y) > 13:
-            return False
+        if abs(mother_y - daughter_y) < 6 or abs(mother_y - daughter_y) > 14:
+            return False, None
 
-        return True
+        return True, d_x + d_y
+
+    def _run_rls_two(self):
+
+        for i, sum_area in enumerate(self.time_sum_area):
+
+            time_num = self.time_num[i]
+            num_obj = self.time_num_obj[i]
+
+            if i in self.peaks:
+                self.num_divisions += 1
+                self.index_div.append(i)
+                self.peak_areas.append(self.time_sum_area[i])
+
+            # No Cells Detected
+            if num_obj == 0:
+                self.stop_condition = "No Cells"
+                self.t_stop = time_num
+                print("Break No Cells", self.trap_num, time_num, self.num_divisions, self.exp_count)
+                break
+
+            # Next X Cells 1 Obj
+            if self.time_num_obj[i:i + 10].count(
+                    1) == 10 and self.num_divisions >= 2:
+                self.stop_condition = "No Divisions - Num Obj 1"
+                self.t_stop = time_num
+                print("Break No Divisions - Num Obj 1", self.trap_num, time_num, self.num_divisions, self.exp_count)
+                break
+
+            # Next X Cells Little Area Change
+            if np.std(self.time_sum_area[
+                      i:i + 10]) <= 4.5 and self.num_divisions >= 2:
+                self.stop_condition = "No Divisions - Area STD"
+                self.t_stop = time_num
+                print("Break No Divisions - Area STD", self.trap_num, time_num, self.num_divisions, self.exp_count)
+                break
+
+        print("No Break", self.trap_num, self.num_divisions, self.exp_count)
 
     def _run_rls(self):
         """

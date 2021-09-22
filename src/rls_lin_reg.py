@@ -132,7 +132,7 @@ def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
 
 def main():
 
-    branch_rls, ground_truth, residuals = parse_results("BC8_yolo_v1.csv_peak_rls.csv")
+    branch_rls, ground_truth, residuals = parse_results("BC8_yolo_v1.csv_combined_rls.csv")
 
     trap_index = [[i, v[0]] for i, v in enumerate(branch_rls)]
 
