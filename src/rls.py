@@ -17,7 +17,7 @@ def main():
     file_name = "BC8_yolo_v1.csv"
 
     trap_data = TrapData("BC8_yolo_v1.csv")
-    rls_res = trap_data.get_rls_peak_all(params=RLSParams())
+    rls_res = trap_data.get_rls_combined_all()
 
     res_df = pd.DataFrame(rls_res)
     res_df.to_csv("reports/{}_combined_rls.csv".format(file_name), index=False,

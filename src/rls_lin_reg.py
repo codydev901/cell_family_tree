@@ -85,7 +85,7 @@ def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
 
     fig = go.Figure()
     fig.update_layout(
-        title="Ground Truth vs SumArea RLS",
+        title="Ground Truth vs Combined RLS",
         xaxis_title="Trap Index (Sorted Least to Greatest by Ground Truth RLS)",
         yaxis_title="RLS (Predicted Cell Divisions)",
         legend_title="Legend",
@@ -100,7 +100,7 @@ def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
     fig.add_trace(go.Scatter(x=[v[0] for v in trap_index],
                              y=[v[1] for v in branch_rls],
                              mode='markers',
-                             name='experimental_branch',
+                             name='predicted',
                              text=["Trap: {}".format(v[1]) for v in trap_index]))
 
     fig.add_trace(go.Scatter(x=[v[1] for v in ground_truth],
@@ -118,7 +118,7 @@ def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
     fig.add_trace(go.Scatter(x=[v[0] for v in trap_index],
                              y=predict_lin_reg(branch_rls_reg, trap_index),
                              mode='lines',
-                             name='experimental_branch_reg',
+                             name='predicted_reg',
                              text=["Trap: {}".format(v[1]) for v in trap_index]))
 
     fig.add_trace(go.Scatter(x=[v[1] for v in ground_truth],

@@ -26,7 +26,7 @@ def main():
         rls_res.plot_sum_area_signal()
         # rls_res.plot_animation_x_y()
         print("OK")
-        print(rls_res.exp_count)
+        print(rls_res.experimental_count)
         print(rls_res.num_divisions)
     else:
         print("Unsupported Exp Res")

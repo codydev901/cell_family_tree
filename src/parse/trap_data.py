@@ -103,21 +103,37 @@ class TrapData:
         assert trap_num in self.traps, "invalid trap_num:{}".format(trap_num)
 
         trap_df = self._get_trap_df(trap_num)
-        exp_res = self.experimental_results.get(trap_num, None)
-        if not exp_res:
+        experimental_count = self.experimental_results.get(trap_num, None)
+
+        if not experimental_count:
             return None
 
-        rls = RLSCombined(trap_df, exp_res)
+        rls = RLSCombined(trap_num, trap_df, experimental_count)
         if get_rls_obj:
             return rls
 
-        rls = rls.results()
-        try:
-            rls.update({"exp_div": self.experimental_results[trap_num]})
-        except KeyError:
-            return None
+        return rls.results()
 
-        return rls
+    def get_rls_combined_all(self):
+        """
+        Doc Doc Doc
+
+        :return:
+        """
+
+        res = []
+        sum_res = []
+
+        for v in self.traps:
+            try:
+                rls = self.get_rls_combined(v, get_rls_obj=False)
+            except ValueError:
+                continue
+            # if rls is None, experimental results were not found. Will ignore it.
+            if rls:
+                res.append(rls)
+
+        return res
 
     def get_rls_peak_all(self, params: RLSParams, as_sum_res=False):
         """
@@ -131,7 +147,7 @@ class TrapData:
 
         for v in self.traps:
             try:
-                rls = self.get_rls_combined(v, get_rls_obj=False)
+                rls = self.get_rls_peak(v, get_rls_obj=False)
             except ValueError:
                 continue
             # if rls is None, experimental results were not found. Will ignore it.
