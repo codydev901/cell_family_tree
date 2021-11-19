@@ -30,6 +30,7 @@ class RLSCombined:
     def __init__(self, trap_number, trap_df, experimental_count):
         # Args
         self.trap_num = trap_number
+        self.raw_df = trap_df.copy()
         self.df = trap_df
         self.experimental_count = experimental_count
         # On Init
@@ -41,6 +42,10 @@ class RLSCombined:
         self.trough_indices = []
         self.num_divisions = 0
         self.division_events = []
+
+        # Presentation Support
+        self.mother_cell_info = {}
+
         self._on_init()
 
     def _on_init(self):
@@ -62,8 +67,11 @@ class RLSCombined:
 
         # Determine Mother and Daughter Cells. Remove other cell from DataFrame.
         self._assign_mother_cell_lineage()
+
         self._assign_daughter_cell_lineage()
         self.df = self.df.loc[(self.df['is_mother_cell'] == 1) | (self.df["is_daughter_cell"] == 1)]
+        # self.df = self.df.loc[(self.df['is_mother_cell'] == 1)] # | (self.df["is_daughter_cell"] == 1)]
+        # self.df = self.df.loc[(self.df["is_daughter_cell"] == 1)]
 
         # Re-calculate SumArea Signal with only mother and daughter
         self._calc_sum_area_signal()
@@ -73,7 +81,7 @@ class RLSCombined:
         self._find_troughs()
 
         # Write .csv
-        # self.df.to_csv("recent/{}_MD.csv".format(self.trap_num))
+        self.df.to_csv("recent/{}_MD.csv".format(self.trap_num))
 
         # Run RLS Algorithm
         self._run_rls()
@@ -99,15 +107,15 @@ class RLSCombined:
     @staticmethod
     def _calc_same_cell_cost(old_cell, new_cell):
         """
-        Doc Doc Doc
-
+        Compares two cells (at different, but adjacent) time points. Lower score indicates higher likelihood of then
+        being the same cell.
         :param old_cell: row in DF
         :param new_cell: row in DF
-        :return: cost score
+        :return: cost score (float)
         """
 
         xy_distance = math.hypot(new_cell["obj_X"] - old_cell["obj_X"], new_cell["obj_Y"] - old_cell["obj_Y"])
-        area_change = abs(1 - new_cell["area"]/old_cell["area"])
+        area_change = abs(1 - new_cell["area"]/old_cell["area"]) * 10.0  # To better relate magnitude to xy_distance
 
         return xy_distance + area_change
 
@@ -143,7 +151,7 @@ class RLSCombined:
 
     def _assign_mother_cell_lineage(self):
         """
-        Doc Doc Doc
+        Assigns mother_cell = True to relevant objects in DataFrame.
         """
 
         # Get cells that exist at the first time step.
@@ -159,7 +167,7 @@ class RLSCombined:
             for i2, t in enumerate(self.df["time_num"].unique()[:150]):
 
                 # Break if Area Reaches 0/No Cells
-                if self.sum_area_signal[i2]["area"] == 0 or self.sum_area_signal[i2]["obj_count"]:
+                if self.sum_area_signal[i2]["area"] == 0 or self.sum_area_signal[i2]["obj_count"] == 0:
                     break
 
                 # Another DataFrame for iterative time.
@@ -185,6 +193,8 @@ class RLSCombined:
         mother_cell_i = potential_mothers[0][0]
         mother_cell = self.df.loc[mother_cell_i]
 
+        self.mother_cell_info["potential_mothers"] = potential_mothers
+
         # Re-run logic with chosen mother cell from above (could be optimized combined).
         for t in self.df["time_num"].unique():
 
@@ -208,7 +218,7 @@ class RLSCombined:
 
     def _assign_daughter_cell_lineage(self):
         """
-        Doc Doc Doc
+        Assigns daughter_cell = True to relevant objects in DataFrame.
         """
 
         last_daughter_cell = None
@@ -238,9 +248,7 @@ class RLSCombined:
 
     def _run_rls(self):
         """
-        {"area": sum_area,
-         "obj_count": total_obj,
-         "time_num": t}
+        Runs iterative RLS.
         """
 
         is_dividing = False
@@ -277,6 +285,7 @@ class RLSCombined:
             # Stop current/Start new a division Event due to Area Change (Missed Division).
             if is_dividing and i in self.trough_indices and time_since_current_division >= 4:
 
+                # Possible for a single stop condition to trigger here.
                 avg_div_area = np.mean([v["area"] for v in self.division_events])
                 if (area < avg_div_area*.50 or area > avg_div_area*1.50) and time_num > 150:
                     self.stop_condition = "Div Range"
@@ -309,7 +318,7 @@ class RLSCombined:
                 break
 
             # No Divisions
-            if time_since_last_division > 5 and self.num_divisions > 2:
+            if time_since_last_division > 10 and self.num_divisions > 2:
                 self.stop_condition = "No Calc Divisions"
                 self.t_stop = time_num
                 print("Break No Div", self.trap_num, time_num, self.num_divisions, self.experimental_count)
@@ -368,17 +377,133 @@ class RLSCombined:
 
         fig = go.Figure()
 
-        fig.layout.title["text"] = "TrapNum:{} TStop:{} SumArea/TimeNum PeakFind".format(self.trap_num, self.t_stop)
+        fig.layout.title["text"] = "TrapNum:{} TStop:{} Division Events".format(self.trap_num, self.t_stop)
 
         area = [v["area"] for v in self.sum_area_signal]
         time_num = [v["time_num"] for v in self.sum_area_signal]
+        obj_count = [v["obj_count"] for v in self.sum_area_signal]
 
         division_stops = [v["stop"] for v in self.division_events]
+        division_starts = [v["start"] for v in self.division_events]
 
-        division_stops = [area[i] if i+1 in division_stops else 0.0 for i in range(len(area))]
+        start_xy_tuple = []
+        for t in division_starts:
+            i = t-1
+            start_xy_tuple.append([t, area[i]])
+
+        stop_xy_tuple = []
+        for t in division_stops:
+            i = t-1
+            stop_xy_tuple.append([t, area[i]])
 
         fig.add_trace(go.Scatter(x=time_num, y=area, mode="lines+markers", name="sum_area_signal"))
-        fig.add_trace(go.Scatter(x=time_num, y=division_stops, mode="markers", name="division_end"))
+        fig.add_trace(go.Scatter(x=[v[0] for v in stop_xy_tuple], y=[v[1] for v in stop_xy_tuple], mode="markers", name="division_stop"))
+        fig.add_trace(go.Scatter(x=[v[0] for v in start_xy_tuple], y=[v[1] for v in start_xy_tuple], mode="markers", name="division_start"))
+        fig.add_trace(go.Scatter(x=time_num, y=[1.0]*len(time_num), mode="text", text=obj_count,
+                                 name="obj_count"))
+
+        fig.show()
+
+    def support_plot_mother_cell_lineage(self):
+
+        print("Support Plot Mother Cell Lineage")
+        fig = go.Figure()
+
+        for v in self.mother_cell_info["potential_mothers"]:
+            cost = v[1]
+            cell_obj = self.raw_df.loc[v[0]]
+            fig.add_trace(go.Scatter(x=[cell_obj["obj_X"]], y=[cell_obj["obj_Y"]], mode="markers+text",
+                                     name="potential_mother", text=[cost]))
+
+        mother_cells = self.df.loc[(self.df["is_mother_cell"] == 1)]
+        mother_cell_x, mother_cell_y = list(mother_cells["obj_X"])[:150], list(mother_cells["obj_Y"])[:150]
+
+        fig.layout.title["text"] = "TrapNum:{} Mother Cell Determination".format(self.trap_num)
+        fig.add_trace(go.Scatter(x=mother_cell_x, y=mother_cell_y, mode="markers", name="mother_cell_lineage"))
+
+        fig.update_layout(
+            xaxis_title="obj_X",
+            yaxis_title="obj_Y",
+        )
+        fig.update_xaxes(range=[0, 50])
+        fig.update_yaxes(range=[0, 50])
+
+        fig.show()
+
+    def support_plot_daughter_cell_lineage(self):
+
+        print("Support Plot Daughter Cell Lineage")
+        t_stop = self.t_stop-1
+        fig = go.Figure()
+
+        mother_cells = self.df.loc[(self.df["is_mother_cell"] == 1)]
+        daughter_cells = self.df.loc[(self.df["is_daughter_cell"] == 1)]
+
+        all_cell_df = self.raw_df.query("time_num < {}".format(t_stop))
+
+        all_cell_x, all_cell_y = list(all_cell_df["obj_X"]), list(all_cell_df["obj_Y"])
+        mother_cell_x, mother_cell_y = list(mother_cells["obj_X"])[:t_stop], list(mother_cells["obj_Y"])[:t_stop]
+        daughter_cell_x, daughter_cell_y = list(daughter_cells["obj_X"])[:t_stop], list(daughter_cells["obj_Y"])[:t_stop]
+
+        fig.layout.title["text"] = "TrapNum:{} Cell Lineages".format(self.trap_num)
+        fig.add_trace(go.Scatter(x=all_cell_x, y=all_cell_y, mode="markers", name="all_cells"))
+        fig.add_trace(go.Scatter(x=mother_cell_x, y=mother_cell_y, mode="markers", name="mother_cell_lineage"))
+        fig.add_trace(go.Scatter(x=daughter_cell_x, y=daughter_cell_y, mode="markers", name="daughter_cell_lineage"))
+
+        fig.update_layout(
+            xaxis_title="obj_X",
+            yaxis_title="obj_Y",
+        )
+        fig.update_xaxes(range=[0, 50])
+        fig.update_yaxes(range=[0, 50])
+
+        fig.show()
+
+    def support_plot_sum_area_signal(self):
+
+        print("Support SumArea Signal")
+
+        mother_daughter = self.df.loc[(self.df['is_mother_cell'] == 1) | (self.df["is_daughter_cell"] == 1)]
+        mother_only = self.df.loc[(self.df['is_mother_cell'] == 1)]
+        daughter_only = self.df.loc[(self.df["is_daughter_cell"] == 1)]
+        all_cell = self.raw_df
+
+        mother_daughter_signal = []
+        mother_only_signal = []
+        daughter_only_signal = []
+        all_cell_signal = []
+
+        time_num = list(self.df["time_num"].unique())
+
+        for t in self.df["time_num"].unique():
+            mother_daughter_df = mother_daughter.query("time_num == {}".format(t))
+            sum_area = sum(mother_daughter_df["area"])
+            mother_daughter_signal.append(sum_area)
+
+            mother_only_df = mother_only.query("time_num == {}".format(t))
+            sum_area = sum(mother_only_df["area"])
+            mother_only_signal.append(sum_area)
+
+            daughter_only_df = daughter_only.query("time_num == {}".format(t))
+            sum_area = sum(daughter_only_df["area"])
+            daughter_only_signal.append(sum_area)
+
+            all_cell_df = all_cell.query("time_num == {}".format(t))
+            sum_area = sum(all_cell_df["area"])
+            all_cell_signal.append(sum_area)
+
+        fig = go.Figure()
+
+        fig.layout.title["text"] = "TrapNum:{} Cell Signals".format(self.trap_num)
+        fig.add_trace(go.Scatter(x=time_num, y=all_cell_signal, mode="lines", name="all"))
+        fig.add_trace(go.Scatter(x=time_num, y=mother_only_signal, mode="lines", name="mother"))
+        fig.add_trace(go.Scatter(x=time_num, y=daughter_only_signal, mode="lines", name="daughter"))
+        fig.add_trace(go.Scatter(x=time_num, y=mother_daughter_signal, mode="lines", name="mother+daughter"))
+
+        fig.update_layout(
+            xaxis_title="time_num",
+            yaxis_title="sum_area",
+        )
 
         fig.show()
 

@@ -28,6 +28,9 @@ def main():
         print("OK")
         print(rls_res.experimental_count)
         print(rls_res.num_divisions)
+        # rls_res.support_plot_mother_cell_lineage()
+        # rls_res.support_plot_daughter_cell_lineage()
+        # rls_res.support_plot_sum_area_signal()
     else:
         print("Unsupported Exp Res")
 

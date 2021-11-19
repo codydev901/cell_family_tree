@@ -132,7 +132,7 @@ def plot_scatter(branch_rls, ground_truth, combined_reg, trap_index,
 
 def main():
 
-    branch_rls, ground_truth, residuals = parse_results("BC8_yolo_v1.csv_combined_rls.csv")
+    branch_rls, ground_truth, residuals = parse_results("BC8_yolo_v1.csv_combined_rls_2.csv")
 
     trap_index = [[i, v[0]] for i, v in enumerate(branch_rls)]
 
@@ -151,7 +151,8 @@ def main():
     print("Sum Residuals")
     print(sum(residuals))
     print("Combined Regression Stats")
-    print(combined_reg)
+    for k in combined_reg:
+        print(k, combined_reg[k])
     print("R^2 = {}".format(combined_reg["r_value"]*combined_reg["r_value"]))
 
     plot_scatter(branch_rls, ground_truth, combined_reg, trap_index, branch_reg, ground_reg)

@@ -1,0 +1,74 @@
+trap_num,t_stop,stop_condition,start_obj,exp_div,pred_div
+1,164,Div Range,1,21,22
+2,157,No Divisions - Area STD,1,18,18
+4,253,Div Range,3,33,33
+5,265,No Divisions - Area STD,2,27,34
+6,288,No Calc Divisions,2,30,38
+7,153,Div Range,1,29,19
+8,191,No Divisions - Area STD,1,24,25
+9,168,No Calc Divisions,3,8,17
+10,163,No Calc Divisions,1,16,20
+11,296,Div Range,3,33,37
+12,238,Div Range,1,19,29
+13,196,Div Range,2,25,23
+14,175,No Cells,1,19,21
+15,190,Div Range,1,23,22
+16,223,Div Range,1,30,26
+17,232,Div Range,1,31,29
+18,193,Div Range,1,22,23
+19,227,No Calc Divisions,1,32,27
+21,157,No Calc Divisions,2,16,15
+24,147,No Divisions - Area STD,1,18,19
+26,156,No Cells,2,21,22
+27,195,Div Range,2,27,25
+28,161,No Divisions - Area STD,4,15,18
+29,207,Div Range,1,29,28
+30,106,No Divisions - Area STD,2,13,14
+32,251,Div Range,1,32,31
+33,212,No Calc Divisions,1,30,26
+34,78,No Divisions - Area STD,2,20,10
+35,258,No Cells,2,30,33
+36,172,No Divisions - Area STD,2,20,19
+37,194,No Calc Divisions,1,23,25
+38,285,No Calc Divisions,1,46,36
+40,121,No Divisions - Area STD,1,12,12
+41,152,No Divisions - Area STD,2,9,20
+42,61,No Divisions - Area STD,2,8,8
+43,263,No Calc Divisions,2,31,32
+45,155,Div Range,2,17,20
+47,139,No Cells,2,13,15
+48,220,No Divisions - Area STD,2,26,30
+49,272,No Divisions - Area STD,2,21,37
+50,186,No Calc Divisions,2,15,24
+51,184,Div Range,2,25,23
+52,155,Div Range,1,33,20
+54,149,No Divisions - Area STD,1,20,19
+55,212,Div Range,1,28,25
+56,94,No Cells,3,9,13
+58,151,Div Range,3,20,19
+60,51,No Divisions - Area STD,1,4,5
+61,87,No Divisions - Area STD,1,10,11
+62,183,No Divisions - Area STD,1,20,22
+63,133,No Divisions - Area STD,2,17,18
+65,151,No Calc Divisions,1,15,16
+66,178,No Calc Divisions,1,21,20
+67,199,Div Range,1,29,25
+68,139,No Divisions - Area STD,5,8,19
+69,145,No Calc Divisions,2,18,17
+70,178,Div Range,2,23,22
+71,224,Div Range,2,31,29
+72,118,No Divisions - Area STD,1,15,15
+77,228,Div Range,2,28,29
+83,195,Div Range,2,29,23
+84,124,No Divisions - Area STD,1,15,15
+86,154,No Calc Divisions,1,18,19
+87,88,No Divisions - Area STD,1,11,12
+89,171,No Calc Divisions,1,19,20
+90,253,Div Range,1,30,32
+91,152,Div Range,1,24,20
+95,197,Div Range,2,27,24
+96,62,No Cells,1,4,7
+97,139,No Divisions - Area STD,1,12,20
+100,331,No Calc Divisions,2,23,40
+101,64,No Divisions - Area STD,2,20,7
+102,154,Div Range,1,23,19
